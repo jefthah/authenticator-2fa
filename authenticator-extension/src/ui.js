@@ -1,5 +1,6 @@
 // Helper UI bersama untuk popup dan halaman import.
 import * as vault from './vault.js';
+import { t, dateLocale } from './i18n.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -18,12 +19,12 @@ export function h(tag, attrs = {}, ...children) {
 
 let toastTimer;
 export function toast(msg, kind = '') {
-  let t = $('#toast');
-  if (!t) document.body.append((t = h('div', { id: 'toast', role: 'status' })));
-  t.textContent = msg;
-  t.className = `show ${kind}`;
+  let el = $('#toast');
+  if (!el) document.body.append((el = h('div', { id: 'toast', role: 'status' })));
+  el.textContent = msg;
+  el.className = `show ${kind}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.className = ''), 2200);
+  toastTimer = setTimeout(() => (el.className = ''), 2200);
 }
 
 const PALETTE = ['#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0d9488', '#0891b2', '#4f46e5'];
@@ -41,10 +42,10 @@ export const subtitle = (a) => (a.issuer ? a.name : '');
 export function ago(ts) {
   if (!ts) return '';
   const s = Math.round((Date.now() - ts) / 1000);
-  if (s < 60) return 'baru saja';
-  if (s < 3600) return `${Math.floor(s / 60)} menit lalu`;
-  if (s < 86400) return `${Math.floor(s / 3600)} jam lalu`;
-  return new Date(ts).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  if (s < 60) return t('justNow');
+  if (s < 3600) return t('minutesAgo', { n: Math.floor(s / 60) });
+  if (s < 86400) return t('hoursAgo', { n: Math.floor(s / 3600) });
+  return new Date(ts).toLocaleString(dateLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -65,31 +66,29 @@ function adoptForm(root, remote) {
   return new Promise((resolve) => {
     const err = h('p', { class: 'error', role: 'alert' });
     const pw = h('input', { type: 'password', id: 'pw', autocomplete: 'current-password', required: true });
-    const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Pakai brankas ini');
+    const btn = h('button', { class: 'btn primary block', type: 'submit' }, t('adoptUse'));
     const form = h('form', { class: 'auth', onsubmit: async (e) => {
       e.preventDefault();
       err.textContent = '';
       btn.disabled = true;
-      btn.textContent = 'Membuka…';
+      btn.textContent = t('opening');
       try {
         if (await vault.adoptRemote(pw.value)) return resolve('adopted');
-        err.textContent = 'Password salah.';
+        err.textContent = t('wrongPassword');
         pw.select();
       } catch (e2) {
         err.textContent = e2.message;
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Pakai brankas ini';
+        btn.textContent = t('adoptUse');
       }
     } },
       h('div', { class: 'auth-icon', 'aria-hidden': 'true' }, icon(ICONS.sync, 28)),
-      h('h1', {}, 'Brankas ditemukan di akun Chrome'),
-      h('p', { class: 'muted' },
-        `Akun 2FA dari ${remote.by || 'laptop lain'} (diperbarui ${ago(remote.at)}) tersedia lewat sinkronisasi Chrome. `
-        + 'Masukkan password brankasnya untuk memakainya di laptop ini.'),
-      h('label', { for: 'pw' }, 'Password brankas'), pw,
+      h('h1', {}, t('adoptTitle')),
+      h('p', { class: 'muted' }, t('adoptBody', { by: remote.by || t('otherDevice'), ago: ago(remote.at) })),
+      h('label', { for: 'pw' }, t('vaultPassword')), pw,
       err, btn,
-      h('button', { type: 'button', class: 'link', onclick: () => resolve('new') }, 'Buat brankas baru saja (tanpa sinkron)'));
+      h('button', { type: 'button', class: 'link', onclick: () => resolve('new') }, t('adoptSkip')));
     root.replaceChildren(form);
     pw.focus();
   });
@@ -101,19 +100,19 @@ function passwordForm(root, state) {
     const err = h('p', { class: 'error', role: 'alert' });
     const pw = h('input', { type: 'password', id: 'pw', autocomplete: isNew ? 'new-password' : 'current-password', required: true, minlength: isNew ? 8 : null });
     const pw2 = isNew ? h('input', { type: 'password', id: 'pw2', autocomplete: 'new-password', required: true }) : null;
-    const btn = h('button', { class: 'btn primary block', type: 'submit' }, isNew ? 'Buat brankas' : 'Buka');
+    const btn = h('button', { class: 'btn primary block', type: 'submit' }, isNew ? t('createVault') : t('unlock'));
 
     const form = h('form', { class: 'auth', onsubmit: async (e) => {
       e.preventDefault();
       err.textContent = '';
-      if (isNew && pw.value.length < 8) return (err.textContent = 'Password minimal 8 karakter.');
-      if (isNew && pw.value !== pw2.value) return (err.textContent = 'Kedua password tidak sama.');
+      if (isNew && pw.value.length < 8) return (err.textContent = t('pwMin'));
+      if (isNew && pw.value !== pw2.value) return (err.textContent = t('pwMismatch'));
       btn.disabled = true;
-      btn.textContent = isNew ? 'Menyiapkan…' : 'Membuka…';
+      btn.textContent = isNew ? t('preparing') : t('opening');
       try {
         if (isNew) await vault.setup(pw.value);
         else if (!(await vault.unlock(pw.value))) {
-          err.textContent = 'Password salah.';
+          err.textContent = t('wrongPassword');
           pw.select();
           return;
         }
@@ -122,25 +121,23 @@ function passwordForm(root, state) {
         err.textContent = e2.message;
       } finally {
         btn.disabled = false;
-        btn.textContent = isNew ? 'Buat brankas' : 'Buka';
+        btn.textContent = isNew ? t('createVault') : t('unlock');
       }
     } },
       h('div', { class: 'auth-icon', 'aria-hidden': 'true' }, lockIcon()),
-      h('h1', {}, isNew ? 'Buat password brankas' : 'Brankas terkunci'),
-      h('p', { class: 'muted' }, isNew
-        ? 'Semua secret 2FA disimpan terenkripsi di komputer ini. Password ini tidak bisa dipulihkan, jadi simpan baik-baik.'
-        : 'Masukkan password untuk melihat kode.'),
-      h('label', { for: 'pw' }, 'Password'), pw,
-      isNew && h('label', { for: 'pw2' }, 'Ulangi password'), pw2,
+      h('h1', {}, isNew ? t('newVaultTitle') : t('lockedTitle')),
+      h('p', { class: 'muted' }, isNew ? t('newVaultBody') : t('lockedBody')),
+      h('label', { for: 'pw' }, t('password')), pw,
+      isNew && h('label', { for: 'pw2' }, t('repeatPassword')), pw2,
       err, btn,
-      !isNew && h('button', { type: 'button', class: 'link danger', onclick: confirmReset }, 'Lupa password? Reset brankas'));
+      !isNew && h('button', { type: 'button', class: 'link danger', onclick: confirmReset }, t('forgotReset')));
     root.replaceChildren(form);
     pw.focus();
   });
 }
 
 /** Dialog modal sederhana. `body` boleh berisi elemen. Resolve true jika OK. */
-export function dialog({ heading, body, ok = 'OK', cancel = 'Batal', danger = false }) {
+export function dialog({ heading, body, ok = t('ok'), cancel = t('cancel'), danger = false }) {
   return new Promise((resolve) => {
     const dlg = h('dialog', { class: 'dialog' });
     const close = (v) => { dlg.close(); dlg.remove(); resolve(v); };
@@ -159,9 +156,9 @@ export function dialog({ heading, body, ok = 'OK', cancel = 'Batal', danger = fa
 
 export async function confirmReset() {
   const ok = await dialog({
-    heading: 'Reset brankas?',
-    body: 'Semua akun di laptop ini akan dihapus permanen. Lanjutkan hanya jika akun masih ada di Google Authenticator HP, punya file cadangan, atau sinkron aktif (salinan di akun Chrome tidak ikut terhapus).',
-    ok: 'Hapus semua', danger: true,
+    heading: t('resetTitle'),
+    body: t('resetBody'),
+    ok: t('resetOk'), danger: true,
   });
   if (ok) {
     await vault.resetAll();

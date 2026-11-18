@@ -1,18 +1,19 @@
 <!doctype html>
-<html lang="id">
+<html lang="en" class="i18n-pending" data-i18n-title="pageTitle">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tambah akun · Authenticator</title>
+  <title>Authenticator</title>
   <link rel="icon" href="icons/icon32.png">
   <link rel="stylesheet" href="src/style.css">
 </head>
 <body class="page">
+  <!-- Teks diisi oleh src/i18n.js (data-i18n*) sesuai bahasa yang dipilih. -->
   <header class="page-head">
     <img src="icons/icon48.png" alt="" width="36" height="36">
     <div>
-      <h1>Tambah akun</h1>
-      <p class="muted">Pindahkan akun dari Google Authenticator, atau tambah satu per satu.</p>
+      <h1 data-i18n="pageHeading"></h1>
+      <p class="muted" data-i18n="pageSub"></p>
     </div>
   </header>
 
@@ -20,21 +21,21 @@
 
   <main id="app" hidden>
     <details class="card guide" open>
-      <summary>Cara ekspor dari Google Authenticator</summary>
+      <summary data-i18n="guideSummary"></summary>
       <ol>
-        <li>Di HP, buka <b>Google Authenticator</b> → menu <b>☰</b> → <b>Transfer akun</b> → <b>Ekspor akun</b>.</li>
-        <li>Pilih semua akun → <b>Berikutnya</b>. Muncul QR. Kalau akunnya banyak, QR-nya lebih dari satu (geser untuk QR berikutnya).</li>
-        <li>Arahkan layar HP ke <b>kamera laptop</b> (tab Kamera), atau foto layar HP pakai HP lain lalu unggah fotonya (tab Gambar). Screenshot biasanya diblokir oleh aplikasinya.</li>
-        <li>Pindai semua QR, periksa daftar di bawah, lalu klik <b>Simpan</b>. Akun di HP tidak terhapus.</li>
+        <li data-i18n-html="guide1"></li>
+        <li data-i18n-html="guide2"></li>
+        <li data-i18n-html="guide3"></li>
+        <li data-i18n-html="guide4"></li>
       </ol>
     </details>
 
     <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="camera" aria-selected="true">Kamera</button>
-      <button role="tab" data-tab="image">Gambar QR</button>
-      <button role="tab" data-tab="text">Link / teks</button>
-      <button role="tab" data-tab="manual">Manual</button>
-      <button role="tab" data-tab="backup">Cadangan</button>
+      <button role="tab" data-tab="camera" aria-selected="true" data-i18n="tabCamera"></button>
+      <button role="tab" data-tab="image" data-i18n="tabImage"></button>
+      <button role="tab" data-tab="text" data-i18n="tabText"></button>
+      <button role="tab" data-tab="manual" data-i18n="tabManual"></button>
+      <button role="tab" data-tab="backup" data-i18n="tabBackup"></button>
     </nav>
 
     <section class="card panel" data-panel="camera">
@@ -42,15 +43,15 @@
         <video id="video" playsinline muted></video>
         <div class="camera-frame" aria-hidden="true"></div>
         <div id="camera-idle" class="camera-idle">
-          <p>Kamera dipakai hanya di halaman ini untuk membaca QR. Gambar tidak disimpan atau dikirim.</p>
-          <button id="camera-start" class="btn primary">Nyalakan kamera</button>
+          <p data-i18n="cameraPrivacy"></p>
+          <button id="camera-start" class="btn primary" data-i18n="cameraStart"></button>
         </div>
       </div>
       <div class="row between wrap">
-        <p id="camera-status" class="muted" aria-live="polite">Kamera mati.</p>
+        <p id="camera-status" class="muted" aria-live="polite"></p>
         <div class="row">
-          <select id="camera-select" aria-label="Pilih kamera" hidden></select>
-          <button id="camera-stop" class="btn ghost" hidden>Matikan</button>
+          <select id="camera-select" data-i18n-attr="aria-label:chooseCamera" hidden></select>
+          <button id="camera-stop" class="btn ghost" data-i18n="cameraStop" hidden></button>
         </div>
       </div>
     </section>
@@ -58,64 +59,64 @@
     <section class="card panel" data-panel="image" hidden>
       <label id="drop" class="drop" for="file">
         <input id="file" type="file" accept="image/*" multiple hidden>
-        <strong>Pilih atau seret foto QR ke sini</strong>
-        <span class="muted">Bisa beberapa foto sekaligus. Bisa juga tempel (Ctrl+V) gambar dari clipboard.</span>
+        <strong data-i18n="dropTitle"></strong>
+        <span class="muted" data-i18n="dropHint"></span>
       </label>
       <ul id="image-results" class="results"></ul>
     </section>
 
     <section class="card panel" data-panel="text" hidden>
-      <label for="uri">Tempel link <code>otpauth-migration://…</code> atau <code>otpauth://…</code> (boleh beberapa, satu per baris)</label>
+      <label for="uri" data-i18n-html="uriLabel"></label>
       <textarea id="uri" rows="5" spellcheck="false" placeholder="otpauth-migration://offline?data=…"></textarea>
-      <p class="muted small">Link ini bisa didapat dengan memindai QR ekspor memakai aplikasi pemindai QR di HP lain (mis. Google Lens → salin teks).</p>
-      <div class="row end"><button id="uri-read" class="btn primary">Baca link</button></div>
+      <p class="muted small" data-i18n="uriHint"></p>
+      <div class="row end"><button id="uri-read" class="btn primary" data-i18n="uriReadBtn"></button></div>
       <p id="uri-status" class="muted" aria-live="polite"></p>
     </section>
 
     <section class="card panel" data-panel="manual" hidden>
       <form id="manual" class="grid">
-        <label>Layanan <input name="issuer" placeholder="mis. GitHub"></label>
-        <label>Nama akun <input name="name" placeholder="mis. nama@email.com"></label>
-        <label class="full">Secret key <input name="secret" required spellcheck="false" autocomplete="off" placeholder="JBSW Y3DP EHPK 3PXP"></label>
+        <label><span data-i18n="issuerLabel"></span> <input name="issuer" data-i18n-attr="placeholder:issuerPlaceholder"></label>
+        <label><span data-i18n="accountName"></span> <input name="name" data-i18n-attr="placeholder:namePlaceholder"></label>
+        <label class="full"><span data-i18n="secretKey"></span> <input name="secret" required spellcheck="false" autocomplete="off" placeholder="JBSW Y3DP EHPK 3PXP"></label>
         <details class="full">
-          <summary>Pengaturan lanjutan</summary>
+          <summary data-i18n="advanced"></summary>
           <div class="grid">
-            <label>Tipe <select name="type"><option value="totp">Berbasis waktu (TOTP)</option><option value="hotp">Berbasis counter (HOTP)</option></select></label>
-            <label>Algoritma <select name="algorithm"><option>SHA1</option><option>SHA256</option><option>SHA512</option></select></label>
-            <label>Digit <select name="digits"><option>6</option><option>7</option><option>8</option></select></label>
-            <label>Periode (detik) <input name="period" type="number" min="1" max="300" value="30"></label>
+            <label><span data-i18n="typeLabel"></span> <select name="type"><option value="totp" data-i18n="totpOption"></option><option value="hotp" data-i18n="hotpOption"></option></select></label>
+            <label><span data-i18n="algorithmLabel"></span> <select name="algorithm"><option>SHA1</option><option>SHA256</option><option>SHA512</option></select></label>
+            <label><span data-i18n="digitsLabel"></span> <select name="digits"><option>6</option><option>7</option><option>8</option></select></label>
+            <label><span data-i18n="periodLabel"></span> <input name="period" type="number" min="1" max="300" value="30"></label>
           </div>
         </details>
         <p id="manual-error" class="error full" role="alert"></p>
-        <div class="row end full"><button class="btn primary">Tambahkan ke daftar</button></div>
+        <div class="row end full"><button class="btn primary" data-i18n="addToList"></button></div>
       </form>
     </section>
 
     <section class="card panel" data-panel="backup" hidden>
-      <h2>Ekspor cadangan</h2>
-      <p class="muted">Mengunduh file <code>.json</code> berisi semua akun, terenkripsi dengan password brankas saat ini. Simpan di tempat aman; tanpa password, file ini tidak bisa dibuka.</p>
-      <button id="export" class="btn ghost">Unduh file cadangan</button>
+      <h2 data-i18n="exportTitle"></h2>
+      <p class="muted" data-i18n-html="exportBody"></p>
+      <button id="export" class="btn ghost" data-i18n="downloadBackup"></button>
       <hr>
-      <h2>Pulihkan dari cadangan</h2>
+      <h2 data-i18n="restoreTitle"></h2>
       <form id="restore" class="grid">
-        <label class="full">File cadangan <input name="file" type="file" accept=".json,application/json" required></label>
-        <label class="full">Password file cadangan <input name="password" type="password" autocomplete="off" required></label>
+        <label class="full"><span data-i18n="backupFileLabel"></span> <input name="file" type="file" accept=".json,application/json" required></label>
+        <label class="full"><span data-i18n="backupPwLabel"></span> <input name="password" type="password" autocomplete="off" required></label>
         <p id="restore-error" class="error full" role="alert"></p>
-        <div class="row end full"><button class="btn primary">Baca cadangan</button></div>
+        <div class="row end full"><button class="btn primary" data-i18n="readBackup"></button></div>
       </form>
     </section>
 
     <section id="pending" class="card pending" hidden>
       <div class="row between wrap">
-        <h2>Siap disimpan <span id="pending-count" class="pill"></span></h2>
+        <h2><span data-i18n="readyToSave"></span> <span id="pending-count" class="pill"></span></h2>
         <div class="row">
-          <button id="toggle-all" class="link">Pilih semua</button>
-          <button id="clear" class="link">Kosongkan</button>
+          <button id="toggle-all" class="link" data-i18n="selectAll"></button>
+          <button id="clear" class="link" data-i18n="clearList"></button>
         </div>
       </div>
       <div id="batches" class="batches"></div>
       <ul id="pending-list" class="pending-list"></ul>
-      <div class="row end"><button id="save" class="btn primary">Simpan</button></div>
+      <div class="row end"><button id="save" class="btn primary" data-i18n="save"></button></div>
     </section>
 
     <section id="done" class="card done" hidden></section>

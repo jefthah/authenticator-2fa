@@ -49,6 +49,10 @@ Versi 1.2 punya ID ekstensi baru, sehingga Chrome menganggapnya ekstensi lain da
 - TOTP & HOTP, SHA1/SHA256/SHA512, 6–8 digit, periode bebas.
 - Cadangan terenkripsi (ekspor/pulihkan file `.json`).
 - Sinkron antar laptop lewat akun Chrome (lihat di bawah).
+- Tampilan bahasa Indonesia dan Inggris: ⚙ Pengaturan → **Bahasa / Language**. Pemasangan
+  baru otomatis mengikuti bahasa Chrome. Pengguna versi lama tetap berbahasa Indonesia.
+
+Kode sumber dan rilis terbaru: https://github.com/jefthah/authenticator-2fa
 
 ## Sinkron antar laptop
 
@@ -98,6 +102,8 @@ src/core.js           Base32, HOTP/TOTP (RFC 4226/6238), parser otpauth & migras
 src/vault.js          enkripsi, penyimpanan, sinkron (chrome.storage.sync)
 src/qr.js             pembaca QR (gambar, video, screenshot tab)
 src/popup.js, src/import.js, src/ui.js, src/style.css
+src/i18n.js           terjemahan; teks ada di src/locales/id.js dan en.js
+_locales/             nama & deskripsi ekstensi per bahasa (untuk manifest)
 lib/zxing-reader.js   pembaca QR utama: zxing-wasm 2.2.4 (MIT) + zxing-cpp (Apache-2.0)
 lib/zxing_reader.wasm   ↳ modul WebAssembly-nya (dimuat lokal, bukan dari CDN)
 lib/jsQR.js           pembaca QR cadangan: jsQR 1.4.0 (Apache-2.0)
@@ -105,6 +111,8 @@ lib/jsQR.js           pembaca QR cadangan: jsQR 1.4.0 (Apache-2.0)
 
 ## Catatan versi
 
+- 1.3.0 — Tampilan bahasa Inggris (pilihan **Bahasa / Language** di Pengaturan). Perbaikan:
+  tulisan "false" tidak lagi muncul di bagian Sinkron saat sinkron mati.
 - 1.2.0 — Sinkron antar laptop lewat akun Chrome (terenkripsi, gabung per akun).
   ID ekstensi dikunci lewat `key`, sehingga data versi lama perlu dipindah lewat
   file cadangan (lihat "Update dari versi 1.0 / 1.1").

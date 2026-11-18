@@ -1,5 +1,6 @@
 // Logika inti tanpa API Chrome: Base32, HOTP/TOTP, dan parser link
 // otpauth:// serta otpauth-migration:// (ekspor Google Authenticator).
+import { t } from './i18n.js';
 
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const HASH = { SHA1: 'SHA-1', SHA256: 'SHA-256', SHA512: 'SHA-512' };
@@ -13,12 +14,12 @@ export function normalizeSecret(s) {
 
 export function base32Decode(input) {
   const s = normalizeSecret(input);
-  if (!s) throw new Error('Secret kosong');
+  if (!s) throw new Error(t('errSecretEmpty'));
   let bits = 0, value = 0;
   const out = [];
   for (const ch of s) {
     const idx = B32.indexOf(ch);
-    if (idx < 0) throw new Error(`Secret berisi karakter tidak valid: "${ch}"`);
+    if (idx < 0) throw new Error(t('errSecretChar', { ch }));
     value = ((value << 5) | idx) & 0xffff;
     bits += 5;
     if (bits >= 8) {
@@ -26,7 +27,7 @@ export function base32Decode(input) {
       bits -= 8;
     }
   }
-  if (!out.length) throw new Error('Secret terlalu pendek');
+  if (!out.length) throw new Error(t('errSecretShort'));
   return new Uint8Array(out);
 }
 
@@ -46,10 +47,10 @@ export function base32Encode(bytes) {
 
 function base64ToBytes(s) {
   // '+' bisa berubah jadi spasi kalau link sempat di-decode; kembalikan.
-  let t = String(s).replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/')
+  let b64 = String(s).replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/')
     .replace(/[^A-Za-z0-9+/]/g, '');
-  while (t.length % 4) t += '=';
-  const bin = atob(t);
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
@@ -71,7 +72,7 @@ async function hmacKey(secret, algorithm) {
 }
 
 export async function hotp(secret, counter, { algorithm = 'SHA1', digits = 6 } = {}) {
-  if (!HASH[algorithm]) throw new Error(`Algoritma ${algorithm} tidak didukung`);
+  if (!HASH[algorithm]) throw new Error(t('errAlgo', { alg: algorithm }));
   const key = await hmacKey(normalizeSecret(secret), algorithm);
   const msg = new ArrayBuffer(8);
   const view = new DataView(msg);
@@ -120,11 +121,11 @@ export function makeAccount(f) {
   const secret = normalizeSecret(f.secret);
   base32Decode(secret); // validasi
   const algorithm = String(f.algorithm || 'SHA1').toUpperCase().replace('-', '');
-  if (!HASH[algorithm]) throw new Error(`Algoritma ${algorithm} tidak didukung`);
+  if (!HASH[algorithm]) throw new Error(t('errAlgo', { alg: algorithm }));
   const digits = Number(f.digits) || 6;
-  if (digits < 6 || digits > 8) throw new Error('Jumlah digit harus 6–8');
+  if (digits < 6 || digits > 8) throw new Error(t('errDigits'));
   const period = Number(f.period) || 30;
-  if (period < 1 || period > 300) throw new Error('Periode tidak valid');
+  if (period < 1 || period > 300) throw new Error(t('errPeriod'));
   const type = f.type === 'hotp' ? 'hotp' : 'totp';
   const { issuer, name } = splitLabel(f.issuer, f.name);
   return {
@@ -151,7 +152,7 @@ const TOMBSTONE_MAX = 400;
 const stamp = (a) => a.updatedAt || a.createdAt || 0;
 
 export function pruneTombstones(deleted, now = Date.now()) {
-  const fresh = Object.entries(deleted || {}).filter(([, t]) => t > now - TOMBSTONE_TTL)
+  const fresh = Object.entries(deleted || {}).filter(([, ts]) => ts > now - TOMBSTONE_TTL)
     .sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))
     .slice(0, TOMBSTONE_MAX);
   return Object.fromEntries(fresh);
@@ -159,7 +160,7 @@ export function pruneTombstones(deleted, now = Date.now()) {
 
 export function mergeVaults(local, remote) {
   const deleted = { ...(local.deleted || {}) };
-  for (const [id, t] of Object.entries(remote.deleted || {})) deleted[id] = Math.max(deleted[id] || 0, t);
+  for (const [id, ts] of Object.entries(remote.deleted || {})) deleted[id] = Math.max(deleted[id] || 0, ts);
 
   const pick = new Map();
   const order = [];
@@ -204,10 +205,10 @@ function safeDecode(s) {
 
 export function parseOtpauthUri(uri) {
   const m = String(uri).trim().match(/^otpauth:\/\/(totp|hotp)\/([^?#]*)(?:\?([^#]*))?/i);
-  if (!m) throw new Error('Bukan link otpauth:// yang valid');
+  if (!m) throw new Error(t('errOtpauth'));
   const q = new URLSearchParams(m[3] || '');
   const secret = q.get('secret');
-  if (!secret) throw new Error('Link otpauth tidak berisi secret');
+  if (!secret) throw new Error(t('errOtpauthNoSecret'));
   return makeAccount({
     type: m[1].toLowerCase(),
     name: safeDecode(m[2]),
@@ -228,17 +229,17 @@ class PbReader {
   varint() {
     let result = 0n, shift = 0n;
     for (;;) {
-      if (this.p >= this.b.length) throw new Error('Data QR terpotong');
+      if (this.p >= this.b.length) throw new Error(t('errQrTruncated'));
       const byte = this.b[this.p++];
       result |= BigInt(byte & 0x7f) << shift;
       if (!(byte & 0x80)) return result;
       shift += 7n;
-      if (shift > 70n) throw new Error('Data QR rusak');
+      if (shift > 70n) throw new Error(t('errQrCorrupt'));
     }
   }
   bytes() {
     const len = Number(this.varint());
-    if (this.p + len > this.b.length) throw new Error('Data QR terpotong');
+    if (this.p + len > this.b.length) throw new Error(t('errQrTruncated'));
     const out = this.b.subarray(this.p, this.p + len);
     this.p += len;
     return out;
@@ -248,7 +249,7 @@ class PbReader {
     else if (wireType === 1) this.p += 8;
     else if (wireType === 2) this.bytes();
     else if (wireType === 5) this.p += 4;
-    else throw new Error('Format data QR tidak dikenal');
+    else throw new Error(t('errQrFormat'));
   }
 }
 
@@ -276,9 +277,9 @@ function parseOtpParameters(bytes) {
 
 export function parseMigrationUri(uri) {
   const m = String(uri).trim().match(/^otpauth-migration:\/\/offline\/?\?(.*)$/i);
-  if (!m) throw new Error('Bukan link otpauth-migration:// yang valid');
+  if (!m) throw new Error(t('errMigration'));
   const data = new URLSearchParams(m[1]).get('data');
-  if (!data) throw new Error('Link migrasi tidak berisi data');
+  if (!data) throw new Error(t('errMigrationNoData'));
   const r = new PbReader(base64ToBytes(data));
   const out = { accounts: [], skipped: [], version: 0, batchSize: 1, batchIndex: 0, batchId: 0 };
   while (!r.eof()) {
@@ -288,7 +289,7 @@ export function parseMigrationUri(uri) {
       const p = parseOtpParameters(r.bytes());
       const label = p.issuer ? `${p.issuer} (${p.name})` : p.name;
       const algorithm = MIG_ALGO[p.algorithm] || 'SHA1';
-      if (algorithm === 'MD5') { out.skipped.push(`${label}: algoritma MD5 tidak didukung`); continue; }
+      if (algorithm === 'MD5') { out.skipped.push(t('errMd5', { label })); continue; }
       try {
         out.accounts.push(makeAccount({
           secret: base32Encode(p.secret), name: p.name, issuer: p.issuer, algorithm,
@@ -310,22 +311,22 @@ export function parseMigrationUri(uri) {
 export function parseAnyText(text) {
   const result = { accounts: [], batches: [], errors: [] };
   const tokens = String(text).split(/\s+/).filter(Boolean);
-  for (const t of tokens) {
+  for (const tok of tokens) {
     try {
-      if (/^otpauth-migration:/i.test(t)) {
-        const mig = parseMigrationUri(t);
+      if (/^otpauth-migration:/i.test(tok)) {
+        const mig = parseMigrationUri(tok);
         result.accounts.push(...mig.accounts);
         result.errors.push(...mig.skipped);
         result.batches.push({ id: mig.batchId, index: mig.batchIndex, size: mig.batchSize, count: mig.accounts.length });
-      } else if (/^otpauth:/i.test(t)) {
-        result.accounts.push(parseOtpauthUri(t));
+      } else if (/^otpauth:/i.test(tok)) {
+        result.accounts.push(parseOtpauthUri(tok));
       }
     } catch (e) {
       result.errors.push(e.message);
     }
   }
   if (!result.accounts.length && !result.errors.length) {
-    result.errors.push('Tidak ditemukan link otpauth:// atau otpauth-migration://');
+    result.errors.push(t('errNoLinks'));
   }
   return result;
 }

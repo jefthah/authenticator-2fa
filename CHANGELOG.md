@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-11-18
+
+- English interface. Choose the language under Settings → **Bahasa / Language**. New installs
+  follow Chrome's language. Existing installs keep Bahasa Indonesia until changed.
+- Localized extension name and description (`_locales/en`, `_locales/id`).
+- Fix: the Sync section no longer shows the text "false" while sync is off.
+- Translation tests: both languages must have the same keys and placeholders.
+
 ## 1.2.0 — 2026-11-18
 
 - Sync between computers through the Chrome account (`chrome.storage.sync`). The encrypted

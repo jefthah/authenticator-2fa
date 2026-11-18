@@ -5,8 +5,9 @@ out of **Google Authenticator** in one go by scanning its "Transfer accounts" QR
 Everything is encrypted with your password and works offline. Optional sync between your
 computers goes through your own Chrome account, end-to-end encrypted.
 
-> 🇮🇩 The interface is currently in **Bahasa Indonesia**.
-> Panduan lengkap berbahasa Indonesia: [authenticator-extension/README.md](authenticator-extension/README.md).
+> The interface is available in **English** and **Bahasa Indonesia**. By default it follows
+> Chrome's language; change it under ⚙ Settings → **Bahasa / Language**.
+> 🇮🇩 Panduan lengkap berbahasa Indonesia: [authenticator-extension/README.md](authenticator-extension/README.md).
 
 ## Features
 
@@ -41,22 +42,22 @@ The extension ID is always `pgmdlhcgleokbdgeeolklkaompfbplcn`, because it is fix
 ## Move accounts from Google Authenticator
 
 1. Click the extension icon and create a vault password (at least 8 characters).
-2. Click **Import dari Google Authenticator** (or **+**). An import tab opens.
+2. Click **Import from Google Authenticator** (or **+**). An import tab opens.
 3. On your phone: Google Authenticator → ☰ → **Transfer accounts** → **Export accounts** →
    select all → **Next**. One or more QR codes appear.
-4. Show them to the webcam (**Kamera** tab), one after another. The batch indicator shows which QR
+4. Show them to the webcam (**Camera** tab), one after another. The batch indicator shows which QR
    codes have been read. Alternatively, take a photo of the phone screen and drop or paste it in
-   the **Gambar QR** tab. Google Authenticator usually blocks screenshots.
-5. Review the list → **Simpan** (Save). Nothing is removed from your phone.
+   the **QR image** tab. Google Authenticator usually blocks screenshots.
+5. Review the list → **Save**. Nothing is removed from your phone.
 
 ## Sync between computers
 
 Requirements: Chrome on every computer is signed in to the same Google account, with
 **Extensions** sync turned on (`chrome://settings/syncSetup`).
 
-1. First computer: extension icon → ⚙ → turn on **Sinkron antar laptop**.
-2. Other computers: install the extension and open it. It shows **"Brankas ditemukan di akun
-   Chrome"** (vault found in Chrome account). Enter the same vault password.
+1. First computer: extension icon → ⚙ → turn on **Sync between computers**.
+2. Other computers: install the extension and open it. It shows **"Vault found in your Chrome
+   account"**. Enter the same vault password.
 
 The vault (AES-GCM ciphertext) is split into ≤7 KB chunks to fit Chrome's sync quota
 (about 100 KB total, enough for roughly 250 accounts). Google only ever sees ciphertext.
@@ -87,10 +88,16 @@ authenticator-extension/   the extension (load this folder in Chrome)
   src/vault.js             encryption, storage, sync (chrome.storage.sync)
   src/qr.js                QR decoding (images, video frames, tab screenshots)
   src/popup.js, src/import.js, src/ui.js, src/style.css
+  src/i18n.js              translation helper; strings live in src/locales/{en,id}.js
+  _locales/                localized extension name and description (manifest)
   lib/                     bundled QR decoders (ZXing WebAssembly, jsQR) + licenses
-tests/                     node:test suites for core.js
+tests/                     node:test suites (core, sync merge, translations)
 .github/workflows/         CI and release
 ```
+
+**Adding a language:** copy `src/locales/en.js` to `src/locales/<code>.js`, translate the values,
+register it in `DICTS` and `LANGUAGES` in `src/i18n.js`, and add `_locales/<code>/messages.json`.
+The tests check that every language has the same keys and placeholders.
 
 Run the tests (Node.js 20+):
 

@@ -2,6 +2,7 @@ import * as vault from './vault.js';
 import { generateCode, formatCode, secondsRemaining, totpStep, parseAnyText, accountKey } from './core.js';
 import { decodeDataUrl } from './qr.js';
 import { $, h, toast, avatar, title, subtitle, authForm, icon, ICONS, dialog, confirmReset, ago } from './ui.js';
+import { t, initI18n, setLang, languagePref, LANGUAGES } from './i18n.js';
 
 const root = $('#root');
 const RING = 2 * Math.PI * 9;
@@ -18,6 +19,7 @@ function openImportPage(hash = '') {
 
 async function start() {
   clearInterval(timer);
+  await initI18n();
   const st = await vault.status();
   if (st !== 'unlocked') await authForm(root, st);
   await vault.touch();
@@ -41,14 +43,14 @@ function showMain() {
   view = 'main';
   clearInterval(timer);
   const search = h('input', {
-    type: 'search', id: 'search', placeholder: 'Cari akun…', value: query, autocomplete: 'off',
+    type: 'search', id: 'search', placeholder: t('searchPlaceholder'), value: query, autocomplete: 'off',
     oninput: (e) => { query = e.target.value; renderList(); },
   });
   root.replaceChildren(
     header(
-      iconBtn('scan', 'Pindai QR di tab ini', scanTab),
-      iconBtn('plus', 'Tambah / import akun', () => openImportPage()),
-      iconBtn('gear', 'Pengaturan', showSettings)),
+      iconBtn('scan', t('scanTab'), scanTab),
+      iconBtn('plus', t('addImport'), () => openImportPage()),
+      iconBtn('gear', t('settings'), showSettings)),
     h('div', { id: 'sync-banner', class: 'banner', hidden: true }),
     accounts.length > 3 ? h('div', { class: 'search' }, icon(ICONS.search, 16), search) : '',
     h('ul', { id: 'list', class: 'list' }),
@@ -74,14 +76,14 @@ function renderList() {
   if (!accounts.length) {
     list.replaceWith(h('div', { class: 'empty', id: 'list' },
       h('div', { class: 'empty-art', 'aria-hidden': 'true' }, icon(ICONS.scan, 36)),
-      h('h2', {}, 'Belum ada akun'),
-      h('p', { class: 'muted' }, 'Pindahkan semua akun dari Google Authenticator di HP sekaligus lewat QR ekspor.'),
-      h('button', { class: 'btn primary block', onclick: () => openImportPage() }, 'Import dari Google Authenticator'),
-      h('button', { class: 'btn ghost block', onclick: scanTab }, 'Pindai QR di tab ini')));
+      h('h2', {}, t('emptyTitle')),
+      h('p', { class: 'muted' }, t('emptyBody')),
+      h('button', { class: 'btn primary block', onclick: () => openImportPage() }, t('importFromGA')),
+      h('button', { class: 'btn ghost block', onclick: scanTab }, t('scanTab'))));
     return;
   }
   if (!shown.length) {
-    list.replaceChildren(h('li', { class: 'none muted' }, `Tidak ada akun yang cocok dengan “${query}”.`));
+    list.replaceChildren(h('li', { class: 'none muted' }, t('noMatch', { q: query })));
     return;
   }
   list.replaceChildren(...shown.map(row));
@@ -93,7 +95,7 @@ function row(a) {
   const secs = h('span', { class: 'secs' });
   let ring;
   if (a.type === 'hotp') {
-    ring = h('button', { class: 'icon-btn hotp', title: 'Kode berikutnya', 'aria-label': 'Kode berikutnya',
+    ring = h('button', { class: 'icon-btn hotp', title: t('nextCode'), 'aria-label': t('nextCode'),
       onclick: (e) => { e.stopPropagation(); nextHotp(a); } }, icon(ICONS.refresh, 18));
   } else {
     ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -112,7 +114,7 @@ function row(a) {
     subtitle(a) && h('div', { class: 'name' }, subtitle(a)),
     code),
   h('div', { class: 'timer' }, ring, a.type === 'hotp' ? '' : secs),
-  h('button', { class: 'icon-btn more', title: 'Ubah / hapus', 'aria-label': 'Ubah atau hapus akun',
+  h('button', { class: 'icon-btn more', title: t('editDelete'), 'aria-label': t('editDeleteAria'),
     onclick: (e) => { e.stopPropagation(); editAccount(a); } }, icon(ICONS.more, 18)));
   rows.set(a.id, { li, code, ring, secs, step: null, value: '' });
   return li;
@@ -150,10 +152,10 @@ async function copy(a) {
     r.li.classList.remove('copied');
     void r.li.offsetWidth;
     r.li.classList.add('copied');
-    toast(`Kode ${title(a)} disalin`);
+    toast(t('copied', { name: title(a) }));
     vault.touch();
   } catch {
-    toast('Gagal menyalin ke clipboard', 'warn');
+    toast(t('copyFailed'), 'warn');
   }
 }
 
@@ -168,30 +170,30 @@ async function editAccount(a) {
   const name = h('input', { id: 'e-name', value: a.name });
   const secret = h('code', { class: 'secret', hidden: true }, a.secret.replace(/(.{4})/g, '$1 ').trim());
   const body = h('div', { class: 'stack' },
-    h('label', { for: 'e-issuer' }, 'Layanan'), issuer,
-    h('label', { for: 'e-name' }, 'Nama akun'), name,
+    h('label', { for: 'e-issuer' }, t('issuerLabel')), issuer,
+    h('label', { for: 'e-name' }, t('accountName')), name,
     h('p', { class: 'muted small' },
-      `${a.type.toUpperCase()} · ${a.algorithm} · ${a.digits} digit${a.type === 'totp' ? ` · ${a.period} detik` : ` · counter ${a.counter}`}`),
+      `${a.type.toUpperCase()} · ${a.algorithm} · ${t('digitsN', { n: a.digits })} · ${a.type === 'totp' ? t('periodSec', { n: a.period }) : t('counterN', { n: a.counter })}`),
     h('button', { type: 'button', class: 'link', onclick: (e) => {
       secret.hidden = !secret.hidden;
-      e.target.textContent = secret.hidden ? 'Tampilkan secret' : 'Sembunyikan secret';
-    } }, 'Tampilkan secret'),
+      e.target.textContent = secret.hidden ? t('showSecret') : t('hideSecret');
+    } }, t('showSecret')),
     secret,
     h('button', { type: 'button', class: 'link danger', onclick: (e) => {
       wantDelete = true;
       e.target.closest('dialog').querySelector('.btn.ghost').click();
-    } }, 'Hapus akun ini'));
+    } }, t('deleteThis')));
   let wantDelete = false;
-  const save = await dialog({ heading: 'Ubah akun', body, ok: 'Simpan' });
+  const save = await dialog({ heading: t('editTitle'), body, ok: t('save') });
   if (wantDelete) {
     const ok = await dialog({
-      heading: `Hapus ${title(a)}?`,
-      body: 'Pastikan 2FA akun ini masih ada di HP atau sudah dimatikan di situsnya, supaya Anda tidak terkunci.',
-      ok: 'Hapus', danger: true,
+      heading: t('deleteTitle', { name: title(a) }),
+      body: t('deleteBody'),
+      ok: t('delete'), danger: true,
     });
     if (!ok) return;
     await vault.deleteAccount(a.id);
-    return toast('Akun dihapus');
+    return toast(t('deleted'));
   }
   if (!save) return;
   await vault.updateAccount({ ...a, issuer: issuer.value.trim(), name: name.value.trim() });
@@ -204,24 +206,24 @@ async function scanTab() {
   try {
     url = await chrome.tabs.captureVisibleTab({ format: 'png' });
   } catch {
-    return toast('Halaman ini tidak bisa dipindai', 'warn');
+    return toast(t('scanBlocked'), 'warn');
   }
   const text = await decodeDataUrl(url);
-  if (!text) return toast('Tidak ada QR yang terlihat di tab ini', 'warn');
+  if (!text) return toast(t('noQrOnTab'), 'warn');
   const res = parseAnyText(text);
-  if (!res.accounts.length) return toast(res.errors[0] || 'QR ini bukan kode 2FA', 'warn');
+  if (!res.accounts.length) return toast(res.errors[0] || t('notTwoFa'), 'warn');
   const have = new Set(accounts.map(accountKey));
   const fresh = res.accounts.filter((a) => !have.has(accountKey(a)));
-  if (!fresh.length) return toast('Akun di QR ini sudah tersimpan');
+  if (!fresh.length) return toast(t('alreadySaved'));
   const ok = await dialog({
-    heading: `Tambahkan ${fresh.length} akun?`,
+    heading: t('addNTitle', { n: fresh.length }),
     body: h('ul', { class: 'mini-list' }, fresh.map((a) => h('li', {}, avatar(title(a)),
       h('div', {}, h('strong', {}, title(a)), subtitle(a) && h('div', { class: 'muted small' }, subtitle(a)))))),
-    ok: 'Tambahkan',
+    ok: t('add'),
   });
   if (!ok) return;
   const { added } = await vault.addAccounts(fresh);
-  toast(`${added} akun ditambahkan`);
+  toast(t('addedN', { n: added }));
 }
 
 // ---------- Pengaturan ----------
@@ -231,38 +233,48 @@ async function showSettings() {
   clearInterval(timer);
   const settings = await vault.getSettings();
   const lockSel = h('select', { id: 'autolock', onchange: (e) => vault.setSettings({ autoLockMinutes: Number(e.target.value) }) },
-    [[0, 'Saat browser ditutup'], [5, 'Setelah 5 menit'], [15, 'Setelah 15 menit'], [60, 'Setelah 1 jam']].map(([v, t]) =>
-      h('option', { value: v, selected: settings.autoLockMinutes === v }, t)));
+    [[0, t('lockOnClose')], [5, t('lockAfter5')], [15, t('lockAfter15')], [60, t('lockAfter60')]].map(([v, label]) =>
+      h('option', { value: v, selected: settings.autoLockMinutes === v }, label)));
+  const pref = await languagePref();
+  const langSel = h('select', { id: 'language', onchange: async (e) => {
+    await vault.setSettings({ language: e.target.value });
+    setLang(e.target.value);
+    showSettings();
+  } },
+    [['auto', t('langAuto')], ...LANGUAGES].map(([v, label]) => h('option', { value: v, selected: pref === v }, label)));
 
   root.replaceChildren(
     h('header', { class: 'bar' },
-      h('button', { class: 'icon-btn', 'aria-label': 'Kembali', onclick: showMain }, icon(ICONS.back)),
-      h('div', { class: 'brand' }, 'Pengaturan'), h('div')),
+      h('button', { class: 'icon-btn', 'aria-label': t('back'), onclick: showMain }, icon(ICONS.back)),
+      h('div', { class: 'brand' }, t('settings')), h('div')),
     h('div', { class: 'settings' },
       h('section', {},
-        h('label', { for: 'autolock' }, 'Kunci otomatis'), lockSel,
-        h('p', { class: 'muted small' }, 'Brankas selalu terkunci lagi saat browser ditutup.')),
+        h('label', { for: 'language' }, t('language')), langSel),
+      h('section', {},
+        h('label', { for: 'autolock' }, t('autoLock')), lockSel,
+        h('p', { class: 'muted small' }, t('autoLockNote'))),
       h('section', { id: 'sync-section' }),
       h('section', {},
-        h('button', { class: 'btn ghost block', onclick: () => openImportPage() }, 'Tambah / import akun'),
-        h('button', { class: 'btn ghost block', onclick: () => openImportPage('#backup') }, 'Cadangan (ekspor / pulihkan)'),
-        h('button', { class: 'btn ghost block', onclick: changePassword }, 'Ganti password'),
-        h('button', { class: 'btn ghost block', onclick: async () => { await vault.lock(); start(); } }, 'Kunci sekarang')),
+        h('button', { class: 'btn ghost block', onclick: () => openImportPage() }, t('addImport')),
+        h('button', { class: 'btn ghost block', onclick: () => openImportPage('#backup') }, t('backupBtn')),
+        h('button', { class: 'btn ghost block', onclick: changePassword }, t('changePassword')),
+        h('button', { class: 'btn ghost block', onclick: async () => { await vault.lock(); start(); } }, t('lockNow'))),
       h('section', {},
-        h('button', { class: 'link danger', onclick: confirmReset }, 'Reset brankas (hapus semua akun)'),
-        h('p', { class: 'muted small' }, `${accounts.length} akun · tersimpan terenkripsi${settings.syncEnabled ? ', disalin ke akun Chrome' : ' hanya di komputer ini'}.`))));
+        h('button', { class: 'link danger', onclick: confirmReset }, t('resetLink')),
+        h('p', { class: 'muted small' }, t(settings.syncEnabled ? 'footerSynced' : 'footerLocal', { n: accounts.length })))));
   renderSyncSection();
 }
 
 // ---------- Sinkron antar laptop ----------
 
 function statusText(s) {
-  if (!s) return 'Belum pernah sinkron.';
+  if (!s) return t('syncNever');
+  const by = s.by || t('otherDevice');
   switch (s.state) {
-    case 'ok': return `✓ Tersinkron ${ago(s.checkedAt)}. Perubahan terakhir dari ${s.by || 'laptop lain'}, ${ago(s.at)}.`;
-    case 'pending': return 'Menunggu data lengkap dari Chrome… Coba "Sinkron sekarang" sebentar lagi.';
-    case 'conflict': return `Brankas di akun Chrome (dari ${s.by || 'laptop lain'}) memakai password lain. Klik Gabungkan.`;
-    case 'error': return `Gagal sinkron: ${s.message}`;
+    case 'ok': return t('syncOk', { checked: ago(s.checkedAt), by, at: ago(s.at) });
+    case 'pending': return t('syncPending');
+    case 'conflict': return t('syncConflict', { by });
+    case 'error': return t('syncError', { msg: s.message });
     default: return '';
   }
 }
@@ -278,55 +290,53 @@ async function renderSyncSection() {
     if (res?.state === 'conflict') await joinDialog(res);
     renderSyncSection();
   } });
-  box.replaceChildren(
-    h('label', { class: 'switch', for: 'sync-on' }, toggle, h('span', {}, 'Sinkron antar laptop')),
-    h('p', { class: 'muted small' },
-      'Lewat akun Google yang login di Chrome (Sinkronisasi → Ekstensi harus aktif). Yang dikirim hanya brankas terenkripsi; laptop lain tetap butuh password brankas.'),
+  box.replaceChildren(...[
+    h('label', { class: 'switch', for: 'sync-on' }, toggle, h('span', {}, t('syncToggle'))),
+    h('p', { class: 'muted small' }, t('syncNote')),
     syncEnabled && h('p', { class: `small ${status?.state === 'ok' ? 'ok-text' : status?.state === 'conflict' || status?.state === 'error' ? 'error' : 'muted'}` }, statusText(status)),
     syncEnabled && h('div', { class: 'row wrap' },
-      status?.state === 'conflict' && h('button', { class: 'btn primary', onclick: () => joinDialog(status).then(renderSyncSection) }, 'Gabungkan…'),
+      status?.state === 'conflict' && h('button', { class: 'btn primary', onclick: () => joinDialog(status).then(renderSyncSection) }, t('mergeEllipsis')),
       h('button', { class: 'btn ghost', onclick: async (e) => {
         e.target.disabled = true;
-        e.target.textContent = 'Menyinkron…';
+        e.target.textContent = t('syncing');
         await vault.syncNow();
         renderSyncSection();
-      } }, 'Sinkron sekarang')),
-    syncEnabled && h('button', { class: 'link danger small', onclick: clearRemoteDialog }, 'Hapus salinan di akun Chrome'));
+      } }, t('syncNow'))),
+    syncEnabled && h('button', { class: 'link danger small', onclick: clearRemoteDialog }, t('clearRemote')),
+  ].filter(Boolean)); // false dari `syncEnabled && …` jangan jadi teks "false"
 }
 
 async function joinDialog(info) {
   const pw = h('input', { type: 'password', id: 'join-pw', autocomplete: 'off' });
   let overwrite = false;
   const ok = await dialog({
-    heading: 'Gabungkan brankas',
+    heading: t('joinTitle'),
     body: h('div', { class: 'stack' },
-      h('p', { class: 'muted' },
-        `Brankas di akun Chrome (dari ${info.by || 'laptop lain'}) memakai password yang berbeda. Masukkan password brankas itu. `
-        + 'Akun dari kedua tempat akan digabung, lalu laptop ini ikut memakai password tersebut.'),
-      h('label', { for: 'join-pw' }, 'Password brankas sinkron'), pw,
+      h('p', { class: 'muted' }, t('joinBody', { by: info.by || t('otherDevice') })),
+      h('label', { for: 'join-pw' }, t('syncVaultPassword')), pw,
       h('button', { type: 'button', class: 'link danger small', onclick: (e) => {
         overwrite = true;
         e.target.closest('dialog').querySelector('.btn.ghost').click();
-      } }, 'Lupa password itu? Timpa salinan sinkron dengan brankas laptop ini')),
-    ok: 'Gabungkan',
+      } }, t('joinForgot'))),
+    ok: t('merge'),
   });
   if (overwrite) {
     const sure = await dialog({
-      heading: 'Timpa salinan sinkron?',
-      body: 'Salinan di akun Chrome diganti dengan brankas laptop ini. Akun yang hanya ada di laptop lain tidak ikut, dan laptop lain harus memasukkan password laptop ini untuk bergabung lagi.',
-      ok: 'Timpa', danger: true,
+      heading: t('overwriteTitle'),
+      body: t('overwriteBody'),
+      ok: t('overwrite'), danger: true,
     });
     if (sure) {
       await vault.overwriteRemote();
-      toast('Salinan sinkron diganti');
+      toast(t('overwritten'));
     }
     return;
   }
   if (!ok) return;
-  toast('Menggabungkan…');
+  toast(t('merging'));
   try {
-    if (await vault.joinRemote(pw.value)) toast('Digabung. Mulai sekarang pakai password brankas sinkron.');
-    else toast('Password salah', 'warn');
+    if (await vault.joinRemote(pw.value)) toast(t('merged'));
+    else toast(t('wrongPasswordShort'), 'warn');
   } catch (e) {
     toast(e.message, 'warn');
   }
@@ -334,13 +344,13 @@ async function joinDialog(info) {
 
 async function clearRemoteDialog() {
   const ok = await dialog({
-    heading: 'Hapus salinan di akun Chrome?',
-    body: 'Sinkron dimatikan dan salinan terenkripsi di akun Chrome dihapus. Akun di laptop ini tetap ada. Laptop lain yang sinkronnya masih aktif akan mengunggah salinannya lagi.',
-    ok: 'Hapus salinan', danger: true,
+    heading: t('clearRemoteTitle'),
+    body: t('clearRemoteBody'),
+    ok: t('clearRemoteOk'), danger: true,
   });
   if (!ok) return;
   await vault.clearRemote();
-  toast('Salinan sinkron dihapus');
+  toast(t('clearedRemote'));
   renderSyncSection();
 }
 
@@ -351,8 +361,8 @@ function renderBanner(s) {
   b.hidden = !bad;
   if (!bad) return;
   b.replaceChildren(
-    h('span', {}, s.state === 'conflict' ? 'Sinkron tertunda: password brankas berbeda dengan laptop lain.' : `Sinkron gagal: ${s.message}`),
-    h('button', { class: 'link', onclick: showSettings }, 'Atur'));
+    h('span', {}, s.state === 'conflict' ? t('bannerConflict') : t('syncError', { msg: s.message })),
+    h('button', { class: 'link', onclick: showSettings }, t('manage')));
 }
 
 async function changePassword() {
@@ -360,19 +370,19 @@ async function changePassword() {
   const newPw = h('input', { type: 'password', id: 'new-pw', autocomplete: 'new-password' });
   const newPw2 = h('input', { type: 'password', id: 'new-pw2', autocomplete: 'new-password' });
   const ok = await dialog({
-    heading: 'Ganti password',
+    heading: t('changePassword'),
     body: h('div', { class: 'stack' },
-      h('label', { for: 'old-pw' }, 'Password lama'), oldPw,
-      h('label', { for: 'new-pw' }, 'Password baru (min. 8 karakter)'), newPw,
-      h('label', { for: 'new-pw2' }, 'Ulangi password baru'), newPw2),
-    ok: 'Simpan',
+      h('label', { for: 'old-pw' }, t('oldPassword')), oldPw,
+      h('label', { for: 'new-pw' }, t('newPasswordMin')), newPw,
+      h('label', { for: 'new-pw2' }, t('repeatNewPassword')), newPw2),
+    ok: t('save'),
   });
   if (!ok) return;
-  if (newPw.value.length < 8) return toast('Password baru minimal 8 karakter', 'warn');
-  if (newPw.value !== newPw2.value) return toast('Password baru tidak sama', 'warn');
-  toast('Menyimpan…');
-  if (await vault.changePassword(oldPw.value, newPw.value)) toast('Password diganti');
-  else toast('Password lama salah', 'warn');
+  if (newPw.value.length < 8) return toast(t('newPwMin'), 'warn');
+  if (newPw.value !== newPw2.value) return toast(t('newPwMismatch'), 'warn');
+  toast(t('saving'));
+  if (await vault.changePassword(oldPw.value, newPw.value)) toast(t('pwChanged'));
+  else toast(t('oldPwWrong'), 'warn');
 }
 
 // ---------- Sinkron dengan halaman import / tab lain ----------

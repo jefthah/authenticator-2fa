@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Authenticator 2FA"
+  },
+  "extDesc": {
+    "message": "2FA codes (TOTP/HOTP) right in Chrome. Import all accounts from a Google Authenticator export. Encrypted and offline."
+  }
+}

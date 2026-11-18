@@ -8,6 +8,7 @@
 // password yang sama menggabungkannya per akun (lihat mergeVaults di core.js).
 
 import { accountKey, mergeVaults, sameVault, pruneTombstones } from './core.js';
+import { t } from './i18n.js';
 
 const ITERATIONS = 600000;
 const CHUNK = 7000; // batas Chrome 8192 byte per item
@@ -98,7 +99,7 @@ async function sessionKey() {
 
 async function needKey() {
   const key = await sessionKey();
-  if (!key) throw new Error('Brankas terkunci');
+  if (!key) throw new Error(t('errLocked'));
   return key;
 }
 
@@ -122,7 +123,7 @@ export async function setup(password) {
 
 export async function unlock(password) {
   const vault = await getVault();
-  if (!vault) throw new Error('Brankas belum dibuat');
+  if (!vault) throw new Error(t('errNoVault'));
   const key = await deriveKey(password, fromB64(vault.kdf.salt), vault.kdf.iterations);
   try {
     await decryptJson(key, vault.iv, vault.ct);
@@ -166,7 +167,7 @@ async function mutate(fn) {
     await syncNow().catch(() => {});
     return result;
   }
-  throw new Error('Gagal menyimpan, coba lagi');
+  throw new Error(t('errSaveRetry'));
 }
 
 /** Tambah akun baru; akun dengan secret yang sudah ada dilewati. */
@@ -231,22 +232,24 @@ export async function exportBackup() {
 
 export async function readBackup(text, password) {
   let file;
-  try { file = JSON.parse(text); } catch { throw new Error('File cadangan tidak valid'); }
+  try { file = JSON.parse(text); } catch { throw new Error(t('errBackupInvalid')); }
   const v = file && file.vault;
-  if (file.format !== 'authenticator-2fa-backup' || !v?.kdf) throw new Error('Bukan file cadangan ekstensi ini');
+  if (file.format !== 'authenticator-2fa-backup' || !v?.kdf) throw new Error(t('errBackupForeign'));
   const key = await deriveKey(password, fromB64(v.kdf.salt), v.kdf.iterations);
   try {
     return (await decryptJson(key, v.iv, v.ct)).accounts || [];
   } catch {
-    throw new Error('Password file cadangan salah');
+    throw new Error(t('errBackupPw'));
   }
 }
 
 /** Hapus brankas di laptop ini (salinan sinkron di akun Chrome tidak disentuh). */
 export async function resetAll() {
   memKey = null;
+  const { settings } = await local.get('settings');
   await session.clear();
   await local.clear();
+  if (settings?.language) await local.set({ settings: { language: settings.language } }); // bahasa tetap
 }
 
 // ---------- Sinkron lewat akun Chrome ----------
@@ -275,7 +278,7 @@ async function writeRemote(v) {
     await sync.set(items);
   } catch (e) {
     throw new Error(/QUOTA/i.test(e.message)
-      ? 'Data terlalu besar atau terlalu sering diubah untuk sinkron Chrome. Coba lagi nanti.'
+      ? t('errQuota')
       : e.message);
   }
   if (prev?.chunks > parts.length) {
@@ -359,7 +362,7 @@ export async function setSyncEnabled(on) {
 /** Laptop baru: pakai brankas dari akun Chrome dengan passwordnya. */
 export async function adoptRemote(password) {
   const remote = await readRemote();
-  if (!remote || remote.incomplete) throw new Error('Data sinkron belum lengkap. Tunggu sebentar lalu coba lagi.');
+  if (!remote || remote.incomplete) throw new Error(t('errSyncIncomplete'));
   const key = await deriveKey(password, fromB64(remote.meta.kdf.salt), remote.meta.kdf.iterations);
   try {
     await decryptJson(key, remote.meta.iv, remote.ct);
@@ -379,7 +382,7 @@ export async function adoptRemote(password) {
  */
 export async function joinRemote(password) {
   const remote = await readRemote();
-  if (!remote || remote.incomplete) throw new Error('Data sinkron belum lengkap. Tunggu sebentar lalu coba lagi.');
+  if (!remote || remote.incomplete) throw new Error(t('errSyncIncomplete'));
   const key2 = await deriveKey(password, fromB64(remote.meta.kdf.salt), remote.meta.kdf.iterations);
   let remoteData;
   try {
