@@ -94,3 +94,60 @@ test('random 3-device simulation converges without duplicates', () => {
   const secrets = remote.accounts.map((a) => a.secret);
   assert.equal(new Set(secrets).size, secrets.length);
 });
+
+// ---------- Display order (drag to reorder) ----------
+const { applyOrder } = await import(new URL('../authenticator-extension/src/core.js', import.meta.url));
+
+test('newest order wins on every device; accounts added later go last', () => {
+  const list = [acc('p1', 'P1P1', 1), acc('p2', 'P2P2', 2), acc('p3', 'P3P3', 3)];
+  const A = { accounts: list, deleted: {}, order: { ids: ['p3', 'p1', 'p2'], at: T + 50 } };
+  const B = { accounts: [...list, acc('p4', 'P4P4', 60)], deleted: {}, order: { ids: ['p2', 'p1', 'p3'], at: T + 40 } };
+  const m1 = mergeVaults(A, B);
+  const m2 = mergeVaults(B, A);
+  assert.equal(ids(m1), 'p3,p1,p2,p4');
+  assert.equal(ids(m2), 'p3,p1,p2,p4');
+  assert.ok(sameVault(m1, m2));
+});
+
+test('an order change alone counts as a change to sync', () => {
+  const v = { accounts: [acc('q1', 'Q1Q1', 1), acc('q2', 'Q2Q2', 2)], deleted: {} };
+  assert.ok(!sameVault(v, { ...v, order: { ids: ['q2', 'q1'], at: T + 5 } }));
+  assert.ok(sameVault({ ...v, order: { ids: ['q2', 'q1'], at: T + 5 } }, { ...v, order: { ids: ['q2', 'q1'], at: T + 5 } }));
+});
+
+test('order is kept when only one side has it, and deleted ids are ignored', () => {
+  const v = { accounts: [acc('r1', 'R1R1', 1), acc('r2', 'R2R2', 2)], deleted: {} };
+  const ordered = { ...v, order: { ids: ['gone', 'r2', 'r1'], at: T + 9 } };
+  assert.equal(ids(mergeVaults(v, ordered)), 'r2,r1');
+  assert.equal(ids(mergeVaults(ordered, v)), 'r2,r1');
+  assert.deepEqual(applyOrder(v.accounts, undefined).map((a) => a.id), ['r1', 'r2']);
+});
+
+test('reorders mixed with edits on 3 devices still converge', () => {
+  let seed = 11;
+  const rnd = (n) => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % n;
+  const start = Array.from({ length: 6 }, (_, i) => acc('s' + i, 'S' + i + 'SS', i));
+  const dev = [0, 1, 2].map(() => ({ accounts: [...start], deleted: {} }));
+  let remote = { accounts: [...start], deleted: {} };
+  let clock = 200;
+  for (let step = 0; step < 300; step++) {
+    const d = rnd(3);
+    clock += 1;
+    const v = dev[d];
+    const op = rnd(4);
+    if (op === 0 && v.accounts.length > 1) {
+      const order = [...v.accounts.map((a) => a.id)].sort(() => rnd(3) - 1);
+      dev[d] = { ...v, order: { ids: order, at: T + clock }, accounts: applyOrder(v.accounts, { ids: order }) };
+    } else if (op === 1) v.accounts.push(acc('n' + step, 'N' + step + 'NN', clock));
+    else if (op === 2 && v.accounts.length) {
+      const i = rnd(v.accounts.length);
+      v.deleted[v.accounts[i].id] = T + clock;
+      v.accounts.splice(i, 1);
+    }
+    if (rnd(3) === 0) dev[d] = remote = mergeVaults(dev[d], remote);
+  }
+  for (let r = 0; r < 2; r++) for (let d = 0; d < 3; d++) dev[d] = remote = mergeVaults(dev[d], remote);
+  assert.ok(sameVault(dev[0], dev[1]) && sameVault(dev[1], dev[2]));
+  assert.equal(ids(dev[0]), ids(dev[1]));
+  assert.equal(ids(dev[1]), ids(dev[2]));
+});

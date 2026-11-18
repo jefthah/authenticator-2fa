@@ -158,6 +158,27 @@ export function pruneTombstones(deleted, now = Date.now()) {
   return Object.fromEntries(fresh);
 }
 
+/**
+ * Urutan tampilan: { ids: [id, …], at: waktu }. Akun yang tidak ada di `ids`
+ * (mis. ditambah setelah diurutkan) ditaruh di akhir dengan urutan semula.
+ */
+export function applyOrder(accounts, order) {
+  if (!order?.ids?.length) return accounts;
+  const pos = new Map(order.ids.map((id, i) => [id, i]));
+  return accounts
+    .map((a, i) => [a, pos.has(a.id) ? pos.get(a.id) : order.ids.length + i])
+    .sort((x, y) => x[1] - y[1])
+    .map(([a]) => a);
+}
+
+/** Urutan yang diubah paling akhir menang (seri: pilihan deterministik). */
+function newerOrder(a, b) {
+  if (!a?.ids) return b?.ids ? b : undefined;
+  if (!b?.ids) return a;
+  if (a.at !== b.at) return a.at > b.at ? a : b;
+  return JSON.stringify(a) >= JSON.stringify(b) ? a : b;
+}
+
 export function mergeVaults(local, remote) {
   const deleted = { ...(local.deleted || {}) };
   for (const [id, ts] of Object.entries(remote.deleted || {})) deleted[id] = Math.max(deleted[id] || 0, ts);
@@ -182,14 +203,17 @@ export function mergeVaults(local, remote) {
   }
   const keep = new Set([...best.values()].map((a) => a.id));
   for (const a of alive) if (!keep.has(a.id)) deleted[a.id] = Math.max(deleted[a.id] || 0, stamp(a));
-  return { accounts: alive.filter((a) => keep.has(a.id)), deleted: pruneTombstones(deleted) };
+  const sorted = newerOrder(local.order, remote.order);
+  const accounts = applyOrder(alive.filter((a) => keep.has(a.id)), sorted);
+  return { accounts, deleted: pruneTombstones(deleted), ...(sorted ? { order: sorted } : {}) };
 }
 
 function canonical(d) {
   const acc = [...(d.accounts || [])].sort((x, y) => (x.id < y.id ? -1 : 1))
     .map((a) => Object.keys(a).sort().map((k) => [k, a[k]]));
   const del = Object.keys(d.deleted || {}).sort().map((k) => [k, d.deleted[k]]);
-  return JSON.stringify([acc, del]);
+  const ord = d.order?.ids ? [d.order.at, d.order.ids] : null;
+  return JSON.stringify([acc, del, ord]);
 }
 
 /** Isi sama (urutan akun diabaikan). */

@@ -139,7 +139,7 @@ label > input, label > select { margin-top: 4px; font-weight: 400; }
 .search input { border: 0; padding: 8px 0; background: transparent; outline: none; }
 .search:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-.list { list-style: none; margin: 0; padding: 6px; }
+.list { list-style: none; margin: 0; padding: 6px; position: relative; }
 .list .none { padding: 24px 12px; text-align: center; }
 .item {
   display: grid; grid-template-columns: 36px 1fr auto auto; align-items: center; gap: 10px;
@@ -157,10 +157,25 @@ label > input, label > select { margin-top: 4px; font-weight: 400; }
 }
 .item.warn .code { color: var(--danger); }
 .item.copied::after {
-  content: "Disalin"; position: absolute; right: 48px; top: 10px; font-size: 11px; font-weight: 700;
+  content: attr(data-copied); position: absolute; right: 48px; top: 10px; font-size: 11px; font-weight: 700;
   color: var(--ok); animation: fade 1.2s ease forwards;
 }
 @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Ubah urutan dengan seret: pegangan titik-titik muncul saat kursor di atas akun. */
+.list.sortable .item { user-select: none; }
+.list.sortable .item::before {
+  content: ""; position: absolute; left: 1px; top: 50%; width: 6px; height: 14px; margin-top: -7px;
+  background-image: radial-gradient(circle, var(--muted) 1.2px, transparent 1.5px); background-size: 3px 4.67px;
+  opacity: 0; transition: opacity 0.15s;
+}
+.list.sortable .item:hover::before, .item.dragging::before { opacity: 0.6; }
+.item.dragging {
+  z-index: 3; background: var(--surface); border-color: transparent;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 24%), 0 2px 6px rgb(0 0 0 / 12%);
+}
+body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
+body.is-dragging .item:not(.dragging):hover { background: none; box-shadow: none; }
 
 .timer { position: relative; width: 30px; height: 30px; display: grid; place-items: center; }
 .ring { width: 30px; height: 30px; transform: rotate(-90deg); }

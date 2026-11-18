@@ -43,6 +43,8 @@ Versi 1.2 punya ID ekstensi baru, sehingga Chrome menganggapnya ekstensi lain da
 ## Fitur
 
 - Klik akun = kode tersalin. Kode merah saat sisa waktu ≤ 5 detik.
+- Seret akun ke atas/bawah untuk mengubah urutan (atau pilih akun lalu tekan Alt+↑/↓).
+  Urutan ikut tersinkron ke laptop lain. Saat sedang mencari, urutan tidak bisa diubah.
 - Tombol **pindai** (ikon kotak) membaca QR yang sedang tampil di tab aktif, berguna
   saat mengaktifkan 2FA di situs baru.
 - Tambah manual (secret key), ubah nama, hapus, cari.
@@ -111,6 +113,8 @@ lib/jsQR.js           pembaca QR cadangan: jsQR 1.4.0 (Apache-2.0)
 
 ## Catatan versi
 
+- 1.4.0 — Ubah urutan akun dengan seret (atau Alt+↑/↓). Urutan ikut sinkron jika semua
+  laptop sudah memakai 1.4. Tanda "Disalin" kini ikut bahasa yang dipilih.
 - 1.3.0 — Tampilan bahasa Inggris (pilihan **Bahasa / Language** di Pengaturan). Perbaikan:
   tulisan "false" tidak lagi muncul di bagian Sinkron saat sinkron mati.
 - 1.2.0 — Sinkron antar laptop lewat akun Chrome (terenkripsi, gabung per akun).

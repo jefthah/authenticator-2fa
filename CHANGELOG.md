@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-11-18
+
+- Reorder accounts by dragging them in the popup (mouse), or with Alt+↑/↓ on a focused account.
+  A grip appears on hover; the popup auto-scrolls near its edges. Reordering is off while searching.
+- The order is stored in the encrypted vault as `{ ids, at }` and syncs between computers:
+  the most recent reorder wins, and accounts added later appear at the end. Computers still on
+  1.3 or older ignore the order and may drop it when they sync, so update every computer.
+- Fix: the "Copied" badge is now translated (it was always Indonesian).
+
 ## 1.3.0 — 2026-11-18
 
 - English interface. Choose the language under Settings → **Bahasa / Language**. New installs

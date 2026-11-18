@@ -53,6 +53,7 @@ export default {
   editDeleteAria: 'Ubah atau hapus akun',
   copied: 'Kode {name} disalin',
   copyFailed: 'Gagal menyalin ke clipboard',
+  copiedBadge: 'Disalin',
 
   // Ubah / hapus akun
   editTitle: 'Ubah akun',

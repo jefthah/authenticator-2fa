@@ -7,7 +7,7 @@
 // chrome.storage.sync, dipecah menjadi potongan ≤7 KB. Perangkat lain dengan
 // password yang sama menggabungkannya per akun (lihat mergeVaults di core.js).
 
-import { accountKey, mergeVaults, sameVault, pruneTombstones } from './core.js';
+import { accountKey, mergeVaults, sameVault, pruneTombstones, applyOrder } from './core.js';
 import { t } from './i18n.js';
 
 const ITERATIONS = 600000;
@@ -48,7 +48,9 @@ async function decryptJson(key, iv, ct) {
 
 async function readData(key, v) {
   const d = await decryptJson(key, v.iv, v.ct);
-  return { accounts: d.accounts || [], deleted: d.deleted || {} };
+  const data = { accounts: applyOrder(d.accounts || [], d.order), deleted: d.deleted || {} };
+  if (d.order?.ids) data.order = d.order;
+  return data;
 }
 
 async function rememberKey(key) {
@@ -192,6 +194,17 @@ export function updateAccount(account) {
   return mutate((data) => {
     const i = data.accounts.findIndex((a) => a.id === account.id);
     if (i >= 0) data.accounts[i] = { ...account, updatedAt: Date.now() };
+  });
+}
+
+/** Simpan urutan baru (daftar id). Akun yang tidak disebut ditaruh di akhir. */
+export function reorderAccounts(ids) {
+  return mutate((data) => {
+    const known = new Set(data.accounts.map((a) => a.id));
+    const list = ids.filter((id) => known.has(id));
+    for (const a of data.accounts) if (!list.includes(a.id)) list.push(a.id);
+    data.order = { ids: list, at: Date.now() };
+    data.accounts = applyOrder(data.accounts, data.order);
   });
 }
 

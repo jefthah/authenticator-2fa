@@ -53,8 +53,12 @@ function showMain() {
       iconBtn('gear', t('settings'), showSettings)),
     h('div', { id: 'sync-banner', class: 'banner', hidden: true }),
     accounts.length > 3 ? h('div', { class: 'search' }, icon(ICONS.search, 16), search) : '',
-    h('ul', { id: 'list', class: 'list' }),
+    h('ul', { id: 'list', class: 'list', onpointerdown: onDragStart }),
   );
+  // Klik yang menyusul akhir seret tidak boleh menyalin kode.
+  $('#list').addEventListener('click', (e) => {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   renderList();
   vault.syncStatus().then(renderBanner);
   timer = setInterval(tick, 200);
@@ -86,6 +90,7 @@ function renderList() {
     list.replaceChildren(h('li', { class: 'none muted' }, t('noMatch', { q: query })));
     return;
   }
+  list.classList.toggle('sortable', !q); // urutan hanya bisa diubah saat tidak mencari
   list.replaceChildren(...shown.map(row));
   tick(true);
 }
@@ -104,9 +109,15 @@ function row(a) {
     ring.innerHTML = `<circle cx="12" cy="12" r="9" class="track"/><circle cx="12" cy="12" r="9" class="fill" stroke-dasharray="${RING}"/>`;
   }
   const li = h('li', {
-    class: 'item', tabindex: 0, 'data-id': a.id,
+    class: 'item', tabindex: 0, 'data-id': a.id, 'data-copied': t('copiedBadge'),
+    'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown',
     onclick: () => copy(a),
-    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copy(a); } },
+    onkeydown: (e) => {
+      if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        moveByKey(li, e.key === 'ArrowUp' ? -1 : 1);
+      } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copy(a); }
+    },
   },
   avatar(title(a)),
   h('div', { class: 'meta' },
@@ -161,6 +172,139 @@ async function copy(a) {
 
 async function nextHotp(a) {
   await vault.updateAccount({ ...a, counter: (a.counter || 0) + 1 });
+}
+
+// ---------- Ubah urutan: seret akun (mouse) atau Alt+↑/↓ (keyboard) ----------
+
+let drag = null; // { li, pointerId, startY, y, grab, active, startIds, scroller }
+let suppressClick = false;
+let refreshAfterDrag = false;
+
+const listIds = () => [...document.querySelectorAll('#list > li.item')].map((li) => li.dataset.id);
+
+/** Pindahkan elemen di DOM dengan animasi geser halus untuk `el`. */
+function flip(el, move) {
+  const before = el.getBoundingClientRect().top;
+  move();
+  const delta = before - el.getBoundingClientRect().top;
+  if (delta) el.animate([{ transform: `translateY(${delta}px)` }, { transform: 'none' }], { duration: 150, easing: 'ease-out' });
+}
+
+function onDragStart(e) {
+  if (drag || e.button !== 0 || e.pointerType === 'touch' || query.trim()) return;
+  const li = e.target.closest('li.item');
+  if (!li || e.target.closest('button')) return;
+  drag = { li, pointerId: e.pointerId, startY: e.clientY, y: e.clientY, grab: 0, active: false, startIds: listIds() };
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd);
+  window.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  drag.y = e.clientY;
+  if (!drag.active) {
+    if (Math.abs(drag.y - drag.startY) < 6) return; // klik biasa, bukan seret
+    drag.active = true;
+    drag.grab = drag.startY - drag.li.getBoundingClientRect().top;
+    try { $('#list').setPointerCapture(drag.pointerId); } catch { /* tetap jalan tanpa capture */ } // terima gerakan walau kursor keluar popup
+    drag.li.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    drag.scroller = setInterval(autoScroll, 16);
+  }
+  e.preventDefault();
+  layoutDrag();
+}
+
+/** Tukar posisi dengan tetangga saat titik tengah terlewati, lalu tempelkan baris ke kursor. */
+function layoutDrag() {
+  const list = $('#list');
+  const { li } = drag;
+  const top = () => list.getBoundingClientRect().top;
+  const maxTop = top() + list.clientHeight - li.offsetHeight;
+  const want = Math.min(Math.max(drag.y - drag.grab, top()), maxTop);
+  const mid = want + li.offsetHeight / 2;
+  for (;;) {
+    const next = li.nextElementSibling;
+    if (next && mid > top() + next.offsetTop + next.offsetHeight / 2) { flip(next, () => next.after(li)); continue; }
+    const prev = li.previousElementSibling;
+    if (prev && mid < top() + prev.offsetTop + prev.offsetHeight / 2) { flip(prev, () => prev.before(li)); continue; }
+    break;
+  }
+  li.style.transform = `translateY(${want - (top() + li.offsetTop)}px)`;
+}
+
+/** Gulir otomatis saat kursor mendekati tepi atas/bawah popup. */
+function autoScroll() {
+  if (!drag?.active) return;
+  const edge = 44;
+  const topEdge = ($('.bar')?.getBoundingClientRect().bottom || 0) + edge;
+  const bottomEdge = window.innerHeight - edge;
+  const dy = drag.y < topEdge ? -Math.ceil((topEdge - drag.y) / 3) : drag.y > bottomEdge ? Math.ceil((drag.y - bottomEdge) / 3) : 0;
+  if (dy) {
+    const before = window.scrollY;
+    window.scrollBy(0, dy);
+    if (window.scrollY !== before) layoutDrag();
+  }
+}
+
+function onDragEnd(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const d = drag;
+  drag = null;
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  window.removeEventListener('pointercancel', onDragEnd);
+  if (!d.active) return;
+  clearInterval(d.scroller);
+  const offset = d.li.style.transform;
+  d.li.style.transform = '';
+  d.li.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  if (offset) d.li.animate([{ transform: offset }, { transform: 'none' }], { duration: 120, easing: 'ease-out' });
+  suppressClick = true;
+  setTimeout(() => (suppressClick = false), 0);
+  const ids = listIds();
+  if (e.type === 'pointercancel' || ids.join() === d.startIds.join()) {
+    if (e.type === 'pointercancel') renderList();
+  } else {
+    saveOrder(ids);
+  }
+  if (refreshAfterDrag) {
+    refreshAfterDrag = false;
+    reloadAccounts();
+  }
+}
+
+function moveByKey(li, dir) {
+  if (query.trim() || drag) return;
+  const sib = dir < 0 ? li.previousElementSibling : li.nextElementSibling;
+  if (!sib) return;
+  flip(sib, () => (dir < 0 ? sib.before(li) : sib.after(li)));
+  li.focus();
+  li.scrollIntoView({ block: 'nearest' });
+  saveOrder(listIds());
+}
+
+async function saveOrder(ids) {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  accounts = ids.map((id) => byId.get(id)).filter(Boolean).concat(accounts.filter((a) => !ids.includes(a.id)));
+  try {
+    await vault.reorderAccounts(ids);
+  } catch (e) {
+    toast(e.message, 'warn');
+    reloadAccounts();
+  }
+}
+
+/** Muat ulang dari brankas; tampilkan ulang hanya jika ada yang berubah. */
+async function reloadAccounts() {
+  if ((await vault.status()) !== 'unlocked') return;
+  const fresh = await vault.loadAccounts();
+  if (JSON.stringify(fresh) === JSON.stringify(accounts)) return;
+  if (drag?.active) { refreshAfterDrag = true; return; }
+  accounts = fresh;
+  if (view === 'main') showMain();
 }
 
 // ---------- Ubah / hapus ----------
@@ -400,10 +544,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     renderBanner(changes.syncStatus.newValue);
     if (view === 'settings') renderSyncSection();
   }
-  if (changes.vault && (await vault.status()) === 'unlocked') {
-    accounts = await vault.loadAccounts();
-    if (view === 'main') showMain();
-  }
+  if (changes.vault) await reloadAccounts();
 });
 
 start();

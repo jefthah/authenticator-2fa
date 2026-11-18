@@ -17,6 +17,7 @@ computers goes through your own Chrome account, end-to-end encrypted.
 - **Scan tab** button: reads a 2FA setup QR code shown on the current web page.
 - TOTP and HOTP, SHA-1/SHA-256/SHA-512, 6–8 digits, any period.
 - Click an account to copy its code; search, rename, delete.
+- Drag accounts to reorder them (or focus one and press Alt+↑/↓). The order syncs too.
 - Encrypted backup file (export / restore).
 - Optional **sync between computers** through `chrome.storage.sync`. Only the encrypted
   vault leaves the device, and accounts are merged per item, so adding accounts on two

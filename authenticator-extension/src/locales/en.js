@@ -54,6 +54,7 @@ export default {
   editDeleteAria: 'Edit or delete account',
   copied: '{name} code copied',
   copyFailed: 'Could not copy to the clipboard',
+  copiedBadge: 'Copied',
 
   // Edit / delete account
   editTitle: 'Edit account',
