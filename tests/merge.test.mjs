@@ -1,0 +1,96 @@
+// Tests for mergeVaults (sync between laptops): parallel adds, deletes,
+// edits, duplicates and convergence. Run: node --test tests/*.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+
+const { mergeVaults, sameVault } = await import(new URL('../authenticator-extension/src/core.js', import.meta.url));
+
+const T = Date.now() - 1e7; // realistic timestamps (old tombstones are pruned)
+const acc = (id, secret, t, extra = {}) => ({
+  id, issuer: 'S' + id, name: 'n', secret, algorithm: 'SHA1', digits: 6, period: 30, type: 'totp', counter: 0,
+  createdAt: T + t, updatedAt: T + t, ...extra, ...(extra.updatedAt ? { updatedAt: T + extra.updatedAt } : {}),
+});
+const ids = (d) => d.accounts.map((a) => a.id).join(',');
+
+const base = { accounts: [acc('a1', 'AAAA', 1)], deleted: {} };
+const A = { accounts: [...base.accounts, acc('a2', 'BBBB', 10)], deleted: {} };
+const B = { accounts: [...base.accounts, acc('a3', 'CCCC', 11)], deleted: {} };
+const mAB = mergeVaults(A, B);
+const mBA = mergeVaults(B, A);
+
+test('accounts added offline on two devices are both kept', () => {
+  assert.equal(ids(mAB), 'a1,a2,a3');
+  assert.ok(sameVault(mAB, mBA), 'commutative');
+  assert.ok(sameVault(mergeVaults(mAB, mAB), mAB), 'idempotent');
+});
+
+test('deletes propagate and stay deleted', () => {
+  const Adel = { accounts: mAB.accounts.filter((a) => a.id !== 'a2'), deleted: { a2: T + 20 } };
+  const m = mergeVaults(mBA, Adel);
+  assert.ok(!ids(m).includes('a2'));
+  assert.equal(m.deleted.a2, T + 20);
+  assert.ok(!ids(mergeVaults(Adel, mBA)).includes('a2'));
+});
+
+test('newest edit wins in both directions', () => {
+  const Bren = { accounts: mBA.accounts.map((a) => (a.id === 'a1' ? { ...a, issuer: 'New', updatedAt: T + 30 } : a)), deleted: {} };
+  assert.equal(mergeVaults(mAB, Bren).accounts.find((a) => a.id === 'a1').issuer, 'New');
+  assert.equal(mergeVaults(Bren, mAB).accounts.find((a) => a.id === 'a1').issuer, 'New');
+});
+
+test('edit after delete revives, edit before delete does not', () => {
+  const del35 = { accounts: [], deleted: { a1: T + 35 } };
+  assert.equal(ids(mergeVaults(del35, { accounts: [acc('a1', 'AAAA', 1, { updatedAt: 40 })], deleted: {} })), 'a1');
+  assert.equal(ids(mergeVaults(del35, { accounts: [acc('a1', 'AAAA', 1, { updatedAt: 30 })], deleted: {} })), '');
+});
+
+test('same secret imported separately on two devices is de-duplicated', () => {
+  const Ad = { accounts: [acc('x1', 'DDDD', 50)], deleted: {} };
+  const Bd = { accounts: [acc('y9', 'DDDD', 60)], deleted: {} };
+  const md = mergeVaults(Ad, Bd);
+  const md2 = mergeVaults(Bd, Ad);
+  assert.equal(ids(md), 'x1', 'oldest copy wins');
+  assert.equal(ids(md2), 'x1');
+  assert.ok(sameVault(md, md2), 'same tombstones both ways');
+  assert.equal(ids(mergeVaults(md, Bd)), 'x1', 'stale duplicate does not come back');
+});
+
+test('local order is kept, remote-only accounts go last', () => {
+  const L = { accounts: [acc('k3', 'K3K3', 3), acc('k1', 'K1K1', 1)], deleted: {} };
+  const R = { accounts: [acc('k1', 'K1K1', 1), acc('k9', 'K9K9', 9)], deleted: {} };
+  assert.equal(ids(mergeVaults(L, R)), 'k3,k1,k9');
+});
+
+test('legacy data without updatedAt/deleted still merges', () => {
+  const legacy = { accounts: [{ ...acc('old', 'OOOO', 5), updatedAt: undefined }] };
+  assert.equal(ids(mergeVaults(legacy, { accounts: [], deleted: {} })), 'old');
+});
+
+test('random 3-device simulation converges without duplicates', () => {
+  let seed = 7;
+  const rnd = (n) => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % n;
+  const dev = [0, 1, 2].map(() => ({ accounts: [], deleted: {} }));
+  let remote = { accounts: [], deleted: {} };
+  let clock = 100;
+  let next = 0;
+  for (let step = 0; step < 400; step++) {
+    const d = rnd(3);
+    const op = rnd(10);
+    clock += 1;
+    const v = dev[d];
+    if (op < 4) v.accounts.push(acc('id' + next, 'S' + ((next++ % 25) + 10), clock));
+    else if (op < 6 && v.accounts.length) {
+      const i = rnd(v.accounts.length);
+      v.deleted[v.accounts[i].id] = T + clock;
+      v.accounts.splice(i, 1);
+    } else if (op < 8 && v.accounts.length) {
+      const i = rnd(v.accounts.length);
+      v.accounts[i] = { ...v.accounts[i], issuer: 'e' + clock, updatedAt: T + clock };
+    }
+    if (rnd(3) === 0) dev[d] = remote = mergeVaults(dev[d], remote);
+  }
+  for (let r = 0; r < 2; r++) for (let d = 0; d < 3; d++) dev[d] = remote = mergeVaults(dev[d], remote);
+  assert.ok(sameVault(dev[0], dev[1]) && sameVault(dev[1], dev[2]) && sameVault(dev[2], remote));
+  const secrets = remote.accounts.map((a) => a.secret);
+  assert.equal(new Set(secrets).size, secrets.length);
+});

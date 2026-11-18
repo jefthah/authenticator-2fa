@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Unit tests
+        run: node --test tests/*.test.mjs
+      - name: Validate manifest
+        run: |
+          node -e "
+            const m = require('./authenticator-extension/manifest.json');
+            if (m.manifest_version !== 3) throw new Error('manifest_version must be 3');
+            if (!/^\d+\.\d+\.\d+$/.test(m.version)) throw new Error('bad version ' + m.version);
+            console.log('manifest ok, version', m.version);
+          "

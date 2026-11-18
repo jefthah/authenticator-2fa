@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Authenticator 2FA",
+  "short_name": "Authenticator",
+  "version": "1.2.0",
+  "description": "Kode 2FA (TOTP/HOTP) langsung di Chrome. Import semua akun dari ekspor Google Authenticator. Tersimpan terenkripsi, offline.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqm+KjoLDF7w9AjyrDMWG7noVDl+xnd9uR7DbjlFRWuHvEUAcG2fjY9cryP6PC37QoGrGrc+zS4UAyMIitzmHEMnVPZMAXtAlTmdR9aUsRasluMVpCVtVpRXpp2z5YvdYfRGflWibE4/Yz+yygP61V7zlqbqF0885XVkazXfG4KsXS1pAV7B3y7UscwKg6+t1bU4WHZm9idzhHr/2MAtvOmGwqWAo27crYyu0ldtRRojTSeMqQbE0oUydmyBOZxjzg0VJ/j7Kbk34wodTbmUUf6OgtWIQGuarZimjUrIyhQE5BUnNH11XVvwbcDbza2+CJ/SHPpX5UAek6zfNwB3yaQIDAQAB",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Authenticator 2FA",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "minimum_chrome_version": "116"
+}

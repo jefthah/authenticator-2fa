@@ -1,0 +1,9 @@
+# Release zips are built by the release workflow and attached to GitHub releases
+*.zip
+SHA256SUMS.txt
+release-notes.md
+
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
