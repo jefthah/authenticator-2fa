@@ -2,3 +2,5 @@
 *.png binary
 *.wasm binary
 *.zip binary
+*.mp4 binary
+*.wav binary

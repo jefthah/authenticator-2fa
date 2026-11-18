@@ -1,5 +1,9 @@
 # Authenticator 2FA — Chrome extension
 
+<p align="center"><img src="promo/social-preview-en.png" width="860" alt="Authenticator 2FA: your 2FA codes, one click away. Import from Google Authenticator, AES-256 encrypted, syncs between laptops."></p>
+
+<p align="center">▶ 26-second intro video: <a href="promo/ad-en.mp4">English</a> · <a href="promo/ad-id.mp4">Bahasa Indonesia</a></p>
+
 Two-factor codes (TOTP/HOTP) right in the Chrome toolbar. Move **all** your accounts
 out of **Google Authenticator** in one go by scanning its "Transfer accounts" QR codes.
 Everything is encrypted with your password and works offline. Optional sync between your
@@ -93,6 +97,7 @@ authenticator-extension/   the extension (load this folder in Chrome)
   _locales/                localized extension name and description (manifest)
   lib/                     bundled QR decoders (ZXing WebAssembly, jsQR) + licenses
 tests/                     node:test suites (core, sync merge, translations)
+promo/                     intro video, thumbnails and the HTML they are rendered from
 .github/workflows/         CI and release
 ```
 

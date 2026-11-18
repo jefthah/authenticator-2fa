@@ -1,0 +1,72 @@
+/* Komponen bersama untuk thumbnail dan video iklan (tiruan tampilan ekstensi, tema terang). */
+:root {
+  --ink: #15181d;
+  --muted: #646b76;
+  --line: #e3e6eb;
+  --accent: #2563eb;
+  --danger: #dc2626;
+  --ok: #15803d;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+
+.pm {
+  width: 360px; background: #f6f7f9; color: var(--ink); text-align: left;
+  font: 14px/1.45 var(--text); border-radius: 12px; overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 8%);
+}
+.pm-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 10px 10px 14px; background: #fff; border-bottom: 1px solid var(--line);
+}
+.pm-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.pm-actions { display: flex; gap: 2px; color: var(--muted); }
+.pm-ib { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; }
+.pm-search {
+  display: flex; align-items: center; gap: 6px; margin: 10px 10px 0; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--muted);
+}
+.pm-list { list-style: none; margin: 0; padding: 6px; position: relative; }
+.pm-item {
+  display: grid; grid-template-columns: 36px 1fr auto auto; align-items: center; gap: 10px;
+  padding: 10px 6px 10px 10px; border-radius: 10px; position: relative;
+  border-top: 1px solid transparent;
+}
+.pm-item + .pm-item { border-top-color: var(--line); }
+.pm-item.hover, .pm-item.lift {
+  background: #fff; border-top-color: transparent;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 16px rgb(16 24 40 / 8%);
+}
+.pm-item.hover + .pm-item, .pm-item.lift + .pm-item { border-top-color: transparent; }
+.pm-item.lift { z-index: 3; box-shadow: 0 14px 34px rgb(0 0 0 / 26%), 0 2px 6px rgb(0 0 0 / 12%); }
+.pm-item .grip {
+  position: absolute; left: 1px; top: 50%; width: 6px; height: 14px; margin-top: -7px; opacity: 0;
+  background-image: radial-gradient(circle, var(--muted) 1.2px, transparent 1.5px); background-size: 3px 4.67px;
+}
+.pm-item.hover .grip, .pm-item.lift .grip { opacity: 0.6; }
+.pm-av {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 700; font-size: 15px; color: var(--av);
+  background: color-mix(in srgb, var(--av) 16%, #fff);
+}
+.pm-meta { min-width: 0; }
+.pm-issuer { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-name { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-code {
+  margin-top: 2px; font-size: 26px; font-weight: 600; letter-spacing: 0.04em; color: var(--accent);
+  font-variant-numeric: tabular-nums; line-height: 1.15; white-space: nowrap;
+}
+.pm-item.warn .pm-code { color: var(--danger); }
+.pm-timer { position: relative; width: 30px; height: 30px; display: grid; place-items: center; }
+.pm-ring { width: 30px; height: 30px; transform: rotate(-90deg); }
+.pm-ring circle { fill: none; stroke-width: 2.6; }
+.pm-ring .tr { stroke: var(--line); }
+.pm-ring .fl { stroke: var(--accent); stroke-linecap: round; }
+.pm-item.warn .pm-ring .fl { stroke: var(--danger); }
+.pm-secs { position: absolute; font-size: 10px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pm-more { width: 28px; display: grid; place-items: center; color: var(--muted); }
+.pm-badge {
+  position: absolute; right: 48px; top: 10px; font-size: 11px; font-weight: 700; color: var(--ok); opacity: 0;
+}
+.pm-foot { padding: 4px 14px 12px; font-size: 12px; color: var(--muted); }

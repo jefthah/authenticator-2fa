@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Authenticator 2FA ad</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #060d24; }
+  #stage { position: absolute; inset: 0; overflow: hidden; color: #fff; font-family: var(--text); }
+  .abs { position: absolute; }
+  .bg { position: absolute; inset: 0; background: linear-gradient(135deg, #050b20 0%, #0a1846 55%, #0d2a78 100%); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(30px); will-change: transform; }
+  .b1 { width: 1100px; height: 900px; background: radial-gradient(circle, rgb(59 130 246 / 55%), transparent 65%); }
+  .b2 { width: 900px; height: 800px; background: radial-gradient(circle, rgb(124 58 237 / 40%), transparent 65%); }
+  .b3 { width: 700px; height: 600px; background: radial-gradient(circle, rgb(14 165 233 / 30%), transparent 65%); }
+  .dots {
+    position: absolute; inset: 0; opacity: 0.16;
+    background-image: radial-gradient(circle, rgb(255 255 255 / 60%) 1.2px, transparent 1.6px); background-size: 34px 34px;
+    mask-image: radial-gradient(1300px 800px at 50% 45%, #000 0%, transparent 78%);
+  }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+
+  /* S1 */
+  .hook { position: absolute; left: 0; right: 0; text-align: center; font: 700 104px/1 var(--display); letter-spacing: -0.035em; white-space: nowrap; }
+  .final { font-size: 132px; }
+  .grad {
+    background: linear-gradient(90deg, #7dd3fc 0%, #a5b4fc 55%, #f0abfc 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .num { display: inline-block; width: 1.1em; margin-right: 0.25em; color: rgb(147 197 253 / 70%); font-size: 0.55em; vertical-align: 0.28em; font-family: var(--mono); font-weight: 600; letter-spacing: 0; }
+
+  /* S2 & S7 */
+  .center { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .title { font: 700 136px/1 var(--display); letter-spacing: -0.04em; white-space: nowrap; }
+  .tagline { font: 500 46px/1.2 var(--display); color: rgb(226 232 255 / 82%); letter-spacing: -0.01em; }
+  .pulse { position: absolute; border-radius: 50%; border: 3px solid rgb(147 197 253 / 70%); }
+  .iconglow { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgb(59 130 246 / 70%), transparent 65%); }
+  .brand-icon { filter: drop-shadow(0 18px 40px rgb(37 99 235 / 55%)); }
+
+  /* Keterangan kiri */
+  .cap { position: absolute; left: 132px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; }
+  .step {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; border-radius: 999px;
+    background: rgb(255 255 255 / 9%); border: 1px solid rgb(255 255 255 / 16%); font: 600 20px/1 var(--text); color: #c7d2fe;
+  }
+  .step b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #2563eb; color: #fff; font: 700 17px/1 var(--mono); }
+  .cap h2 { margin: 26px 0 0; font: 700 74px/1.03 var(--display); letter-spacing: -0.035em; }
+  .cap p { margin: 24px 0 0; font-size: 29px; line-height: 1.45; color: rgb(226 232 255 / 78%); }
+
+  /* S3 ponsel + halaman import */
+  .phone {
+    position: absolute; width: 340px; height: 700px; border-radius: 56px; background: #0b0f19; padding: 14px;
+    box-shadow: 0 40px 90px rgb(2 6 23 / 65%), inset 0 0 0 2px #334155;
+  }
+  .phone .screen { position: relative; width: 100%; height: 100%; border-radius: 44px; overflow: hidden;
+    background: linear-gradient(180deg, #111827, #0f172a); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+  .phone .notch { position: absolute; top: 14px; left: 50%; width: 96px; height: 26px; margin-left: -48px; border-radius: 20px; background: #000; }
+  .phone .qrbox { position: relative; padding: 16px; background: #fff; border-radius: 20px; }
+  .phone .lbl { font: 600 22px/1 var(--text); color: #cbd5e1; }
+  .phone .dots3 { display: flex; gap: 8px; }
+  .phone .dots3 i { width: 9px; height: 9px; border-radius: 50%; background: #2563eb; }
+  .laser { position: absolute; left: -8px; right: -8px; height: 4px; border-radius: 4px;
+    background: linear-gradient(90deg, transparent, #22d3ee 20%, #a5f3fc 50%, #22d3ee 80%, transparent);
+    box-shadow: 0 0 18px 6px rgb(34 211 238 / 55%); }
+  .corner { position: absolute; width: 44px; height: 44px; border: 5px solid #22d3ee; }
+  .particle { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #67e8f9; box-shadow: 0 0 16px 4px rgb(103 232 249 / 70%); }
+
+  .card {
+    position: absolute; width: 640px; background: #fff; color: var(--ink); border-radius: 22px; padding: 26px 28px 28px;
+    box-shadow: 0 40px 90px rgb(2 6 23 / 60%); font-size: 17px;
+  }
+  .card .hd { display: flex; align-items: center; gap: 12px; font: 700 26px/1 var(--display); }
+  .tabs { display: flex; gap: 6px; margin-top: 20px; padding: 5px; background: #f0f2f5; border-radius: 12px; }
+  .tabs span { flex: 1; text-align: center; padding: 9px 0; border-radius: 9px; font-weight: 600; font-size: 15px; color: var(--muted); white-space: nowrap; }
+  .tabs span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 12%); }
+  .status { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-weight: 600; color: var(--ok); min-height: 32px; }
+  .status .pill { padding: 5px 10px; border-radius: 999px; background: #dcfce7; font-size: 15px; }
+  .rows { margin-top: 10px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .irow { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
+  .irow:first-child { border-top: 0; }
+  .irow .pm-av { width: 40px; height: 40px; }
+  .irow .m { flex: 1; min-width: 0; }
+  .irow .i { font-weight: 600; }
+  .irow .n { font-size: 14px; color: var(--muted); }
+  .irow .tag { font: 600 12px/1 var(--mono); color: var(--muted); padding: 5px 7px; border-radius: 6px; background: #f0f2f5; }
+  .irow .ck { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: #2563eb; color: #fff; }
+  .savebtn { margin-top: 18px; height: 58px; border-radius: 14px; display: grid; place-items: center; background: #2563eb; color: #fff; font: 700 20px/1 var(--text); }
+
+  /* S4 jendela browser */
+  .win { position: absolute; width: 1080px; height: 780px; border-radius: 16px; overflow: hidden; background: #f8fafc;
+    box-shadow: 0 50px 110px rgb(2 6 23 / 65%), 0 0 0 1px rgb(255 255 255 / 8%); color: var(--ink); }
+  .tabstrip { height: 46px; background: #dfe3ea; display: flex; align-items: flex-end; padding: 0 14px; gap: 8px; }
+  .tabstrip .lights { display: flex; gap: 8px; align-self: center; margin-right: 10px; }
+  .tabstrip .lights i { width: 13px; height: 13px; border-radius: 50%; background: #c3c9d3; }
+  .tab { height: 36px; width: 260px; background: #fff; border-radius: 12px 12px 0 0; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 14px; font-weight: 600; }
+  .tab .fav { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; }
+  .toolbar { height: 54px; background: #fff; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #e5e7eb; color: #5f6368; }
+  .toolbar .addr { flex: 1; height: 36px; border-radius: 999px; background: #f1f3f4; display: flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 15px; }
+  .toolbar .ext { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+  .toolbar .me { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ef4444); }
+  .page { position: relative; height: 680px; }
+  .login { position: absolute; left: 70px; top: 90px; width: 470px; background: #fff; border-radius: 20px; padding: 36px 36px 34px;
+    box-shadow: 0 2px 4px rgb(16 24 40 / 6%), 0 12px 32px rgb(16 24 40 / 10%); border: 1px solid #eef0f3; }
+  .login .logo { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--display); }
+  .login .logo i { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-style: normal; font-weight: 800; }
+  .login h3 { margin: 26px 0 0; font: 700 30px/1.15 var(--display); letter-spacing: -0.02em; }
+  .login p { margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: var(--muted); }
+  .boxes { display: flex; gap: 10px; margin-top: 24px; }
+  .boxes span { width: 58px; height: 68px; border-radius: 12px; border: 2px solid #d5d9e0; display: grid; place-items: center;
+    font: 600 32px/1 var(--text); font-variant-numeric: tabular-nums; color: var(--ink); background: #fff; }
+  .boxes span.focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgb(37 99 235 / 18%); }
+  .boxes span.ok { border-color: #16a34a; }
+  .verify { margin-top: 24px; height: 54px; border-radius: 12px; display: grid; place-items: center; background: #2563eb; color: #fff; font: 700 18px/1 var(--text); }
+  .verify.ok { background: #16a34a; }
+  .keycap { position: absolute; left: 0; top: 0; display: flex; gap: 6px; align-items: center; padding: 10px 14px; border-radius: 12px; background: #0f172a; color: #fff;
+    font: 700 20px/1 var(--text); box-shadow: 0 12px 30px rgb(2 6 23 / 40%); white-space: nowrap; }
+  .keycap kbd { font: 700 18px/1 var(--mono); padding: 6px 9px; border-radius: 7px; background: #1e293b; border: 1px solid #334155; border-bottom-width: 3px; }
+  .popmove { position: absolute; transform-origin: top right; }
+  .popmove .pm { box-shadow: 0 30px 70px rgb(2 6 23 / 40%), 0 8px 22px rgb(2 6 23 / 25%); }
+  .toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); white-space: nowrap; background: #15181d; color: #f6f7f9;
+    padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 13px; opacity: 0; }
+
+  /* S5 */
+  .bigpop { position: absolute; }
+  .bigpop .pm { box-shadow: 0 50px 110px rgb(2 6 23 / 60%), 0 10px 30px rgb(2 6 23 / 35%); }
+
+  /* S6 */
+  .laptop { position: absolute; width: 440px; }
+  .laptop .scr { margin: 0 20px; height: 280px; border-radius: 18px 18px 6px 6px; background: #0b0f19; padding: 14px; box-shadow: inset 0 0 0 2px #334155; }
+  .laptop .disp { position: relative; width: 100%; height: 100%; border-radius: 8px; overflow: hidden;
+    background: linear-gradient(160deg, #dbe4f5, #c7d4ee); }
+  .laptop .base { height: 20px; border-radius: 0 0 16px 16px; background: linear-gradient(#cbd5e1, #94a3b8); position: relative; }
+  .laptop .base::after { content: ""; position: absolute; left: 50%; top: 0; width: 90px; height: 7px; margin-left: -45px; border-radius: 0 0 8px 8px; background: #64748b; }
+  .laptop .name { margin-top: 22px; text-align: center; font: 600 24px/1 var(--text); color: rgb(226 232 255 / 80%); }
+  .laptop .synced { margin-top: 12px; text-align: center; font: 600 20px/1 var(--text); color: #4ade80; opacity: 0; }
+  .mini { position: absolute; left: 50%; top: 12px; transform-origin: top center; }
+  .mini .pm { box-shadow: 0 10px 30px rgb(2 6 23 / 25%); }
+  .cloud { position: absolute; width: 300px; height: 200px; }
+  .cloud .lockb { position: absolute; left: 50%; top: 54%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 26px;
+    display: grid; place-items: center; background: #16a34a; box-shadow: 0 16px 40px rgb(22 163 74 / 45%); }
+  .cloud .cl { position: absolute; left: 0; right: 0; top: 214px; text-align: center; font: 600 22px/1.3 var(--text); color: rgb(226 232 255 / 80%); }
+  .cloud .cl small { display: block; font-size: 18px; color: rgb(226 232 255 / 55%); font-weight: 500; }
+  .packet { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 10px; border-radius: 999px;
+    background: #0f172a; border: 1px solid rgb(103 232 249 / 50%); color: #a5f3fc; font: 600 17px/1 var(--mono);
+    box-shadow: 0 0 22px rgb(34 211 238 / 35%); white-space: nowrap; }
+
+  /* S7 */
+  .urlpill { display: inline-flex; align-items: center; gap: 16px; padding: 20px 34px; border-radius: 22px; position: relative; overflow: hidden;
+    background: rgb(255 255 255 / 9%); border: 1px solid rgb(255 255 255 / 20%); font: 600 40px/1 var(--mono); color: #e0e7ff; }
+  .urlpill .shine { position: absolute; top: 0; bottom: 0; width: 160px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 22%), transparent); transform: skewX(-20deg); }
+  .free { display: inline-flex; align-items: center; gap: 14px; font: 600 40px/1 var(--display); color: rgb(226 232 255 / 88%); }
+  .free .badge { padding: 9px 16px; border-radius: 10px; font: 800 22px/1 var(--text); letter-spacing: 0.08em; background: linear-gradient(90deg, #22c55e, #16a34a); color: #fff; text-transform: uppercase; }
+  .chips { display: flex; gap: 14px; justify-content: center; }
+  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px 12px 16px; border-radius: 999px; font-size: 22px; font-weight: 600;
+    background: rgb(255 255 255 / 8%); border: 1px solid rgb(255 255 255 / 14%); color: #dbe4ff; }
+  .chip svg { color: #93c5fd; }
+
+  /* Kursor */
+  #cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; z-index: 50; opacity: 0; transform-origin: 6px 4px; pointer-events: none;
+    filter: drop-shadow(0 6px 10px rgb(0 0 0 / 35%)); }
+  #ripple { position: absolute; z-index: 49; border-radius: 50%; border: 3px solid rgb(255 255 255 / 85%); opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bg"></div>
+  <div class="blob b1" id="b1"></div><div class="blob b2" id="b2"></div><div class="blob b3" id="b3"></div>
+  <div class="dots"></div>
+
+  <div class="scene" id="s1"></div>
+  <div class="scene" id="s2"></div>
+  <div class="scene" id="s3"></div>
+  <div class="scene" id="s4"></div>
+  <div class="scene" id="s5"></div>
+  <div class="scene" id="s6"></div>
+  <div class="scene" id="s7"></div>
+
+  <div id="ripple"></div>
+  <svg id="cursor" viewBox="0 0 40 40"><path d="M6 4 L6 33 L13.5 26 L18.5 37 L23.5 34.8 L18.6 24 L29 24 Z" fill="#fff" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round"/></svg>
+</div>
+<script src="shared.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const LANG = q.get('lang') === 'id' ? 'id' : 'en';
+document.documentElement.lang = LANG;
+const { icon, brandIcon, piePath, popup, setTimer, fakeQR, avColor, el } = Promo;
+window.DURATION = 26;
+
+// ---------- Teks ----------
+const T = {
+  en: {
+    hook: ['Unlock your phone.', 'Open the app.', 'Find the account.', 'Type six digits.'],
+    hookFinal: 'There’s a <span class="grad">faster way.</span>',
+    tagline: 'Your 2FA codes, right in Chrome.',
+    s3: ['Import', 'Bring them all from<br><span class="grad">Google Authenticator</span>', 'On your phone: Transfer accounts, then scan the QR code. Every account comes over at once.'],
+    pageTitle: 'Add accounts', tabs: ['Camera', 'QR image', 'Link / text', 'Manual', 'Backup'],
+    found: '5 accounts found', save: 'Save 5 accounts', saved: '5 accounts saved ✓', qrLbl: 'QR 1 of 1',
+    s4: ['Copy', 'One click.<br><span class="grad">Code copied.</span>', 'Your codes live in the Chrome toolbar. Click, paste, and you’re in.'],
+    loginH: '2-Step Verification', loginP: 'Enter the 6-digit code from your authenticator app.', verify: 'Verify', verified: '✓ Signed in',
+    search: 'Search accounts…', copied: 'Copied', toast: 'Nimbus Mail code copied', paste: 'Paste',
+    s5: ['Organize', 'Drag to <span class="grad">reorder.</span>', 'Keep the codes you use most at the top. The order syncs too.'],
+    s6: ['Secure', 'Encrypted.<br><span class="grad">Synced.</span>', 'Locked with your password (AES-256) and synced between your laptops through Chrome. Only encrypted data leaves.'],
+    lapA: 'Work laptop', lapB: 'Home laptop', cloud: 'Chrome sync', cloudSmall: 'encrypted only', synced: '✓ Synced just now',
+    free: 'Free & open source', lic: 'MIT license',
+    chips: [['qr', 'Google Authenticator import'], ['lock', 'AES-256'], ['sync', 'Laptop sync'], ['globe', 'English · Indonesia']],
+  },
+  id: {
+    hook: ['Buka kunci HP.', 'Buka aplikasinya.', 'Cari akunnya.', 'Ketik enam digit.'],
+    hookFinal: 'Ada cara yang <span class="grad">lebih cepat.</span>',
+    tagline: 'Kode 2FA langsung di Chrome.',
+    s3: ['Import', 'Pindahkan semua dari<br><span class="grad">Google Authenticator</span>', 'Di HP: Transfer akun, lalu pindai QR-nya. Semua akun pindah sekaligus.'],
+    pageTitle: 'Tambah akun', tabs: ['Kamera', 'Gambar QR', 'Link / teks', 'Manual', 'Cadangan'],
+    found: '5 akun ditemukan', save: 'Simpan 5 akun', saved: '5 akun tersimpan ✓', qrLbl: 'QR 1 dari 1',
+    s4: ['Salin', 'Sekali klik.<br><span class="grad">Kode tersalin.</span>', 'Kode ada di toolbar Chrome. Klik, tempel, langsung masuk.'],
+    loginH: 'Verifikasi 2 Langkah', loginP: 'Masukkan 6 digit kode dari aplikasi autentikator Anda.', verify: 'Verifikasi', verified: '✓ Berhasil masuk',
+    search: 'Cari akun…', copied: 'Disalin', toast: 'Kode Nimbus Mail disalin', paste: 'Tempel',
+    s5: ['Atur', 'Seret untuk <span class="grad">mengurutkan.</span>', 'Taruh kode yang paling sering dipakai di atas. Urutannya ikut sinkron.'],
+    s6: ['Aman', 'Terenkripsi.<br><span class="grad">Tersinkron.</span>', 'Dikunci dengan password Anda (AES-256) dan sinkron antar laptop lewat Chrome. Yang keluar hanya data terenkripsi.'],
+    lapA: 'Laptop kantor', lapB: 'Laptop rumah', cloud: 'Sinkron Chrome', cloudSmall: 'hanya data terenkripsi', synced: '✓ Tersinkron baru saja',
+    free: 'Gratis & open source', lic: 'Lisensi MIT',
+    chips: [['qr', 'Import Google Authenticator'], ['lock', 'AES-256'], ['sync', 'Sinkron antar laptop'], ['globe', 'Indonesia · English']],
+  },
+}[LANG];
+
+// Akun contoh fiktif.
+const ACC = [
+  { issuer: 'Nimbus Mail', name: 'demo@example.com', code: '482913' },
+  { issuer: 'Atlas Cloud', name: 'admin@example.com', code: '105774' },
+  { issuer: 'Orbit Pay', name: 'demo.user', code: '639208' },
+  { issuer: 'Pixel Studio', name: 'design@example.org', code: '917352' },
+  { issuer: 'Lumen Docs', name: 'team@example.com', code: '270846' },
+];
+
+// ---------- Utilitas waktu ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const P = (t, t0, t1) => clamp((t - t0) / (t1 - t0));
+const eOut = (p) => 1 - Math.pow(1 - p, 3);
+const eIn = (p) => p * p * p;
+const eIO = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const eBack = (p) => { const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+const spring = (p) => (p >= 1 ? 1 : 1 - Math.exp(-7 * p) * Math.cos(11 * p));
+const $ = (id) => document.getElementById(id);
+const set = (node, o) => { for (const k in o) node.style[k] = o[k]; };
+// Muncul: geser dari bawah + pudar.
+function rise(node, t, t0, dur = 0.45, dy = 36, blur = 0) {
+  const p = eOut(P(t, t0, t0 + dur));
+  set(node, { opacity: p, transform: `translateY(${(1 - p) * dy}px)`, filter: blur ? `blur(${(1 - p) * blur}px)` : '' });
+  return p;
+}
+function show(id, a) { const n = $(id); n.style.opacity = a; n.style.visibility = a > 0 ? 'visible' : 'hidden'; }
+function sceneAlpha(t, t0, t1, fi = 0.35, fo = 0.35) {
+  if (t < t0 || t > t1) return 0;
+  return Math.min(eOut(P(t, t0, t0 + fi)), t1 >= DURATION ? 1 : 1 - eIO(P(t, t1 - fo, t1)));
+}
+function caption(scene, n, [label, h2, p]) {
+  const c = el(`<div class="cap"><span class="step"><b>0${n}</b>${label}</span><h2>${h2}</h2><p>${p}</p></div>`);
+  scene.append(c);
+  return { step: c.querySelector('.step'), h2: c.querySelector('h2'), p: c.querySelector('p') };
+}
+function animCaption(c, t, t0) {
+  rise(c.step, t, t0, 0.45, 24);
+  rise(c.h2, t, t0 + 0.08, 0.5, 36);
+  rise(c.p, t, t0 + 0.18, 0.5, 30);
+}
+function makePopup(accs, extra = {}) {
+  return popup(accs, { search: T.search, copied: T.copied, ...extra });
+}
+const S = {}; // elemen per adegan
+const M = {}; // posisi terukur (px panggung)
+const center = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+
+// ---------- S1: hook ----------
+(function () {
+  const s = $('s1');
+  S.hook = T.hook.map((txt, i) => {
+    const d = el(`<div class="hook"><span class="num">0${i + 1}</span>${txt}</div>`);
+    d.style.top = `${300 + i * 128}px`;
+    s.append(d);
+    return d;
+  });
+  S.hookFinal = el(`<div class="hook final">${T.hookFinal}</div>`);
+  S.hookFinal.style.top = '470px';
+  s.append(S.hookFinal);
+})();
+
+// ---------- S2: logo ----------
+(function () {
+  const s = $('s2');
+  s.innerHTML = `<div class="center" style="top:236px">
+      <div style="position:relative;width:240px;height:240px;display:grid;place-items:center">
+        <div class="iconglow" id="s2glow" style="width:520px;height:520px;left:-140px;top:-140px"></div>
+        <div class="pulse" id="s2pulse" style="width:240px;height:240px;left:0;top:0"></div>
+        <div id="s2icon">${brandIcon(240, 0)}</div>
+      </div>
+      <div class="title" id="s2title" style="margin-top:56px">Authenticator 2FA</div>
+      <div class="tagline" id="s2tag" style="margin-top:26px">${T.tagline}</div>
+    </div>`;
+})();
+
+// ---------- S3: import ----------
+(function () {
+  const s = $('s3');
+  S.c3 = caption(s, 1, T.s3);
+  S.c3.h2.style.fontSize = '56px';
+  S.c3.h2.style.whiteSpace = 'nowrap';
+  const phone = el(`<div class="phone" style="left:760px;top:190px"><div class="screen">
+      <div class="notch"></div>
+      <div class="qrbox" id="qrbox">${fakeQR(236, 21)}
+        <div class="laser" id="laser"></div>
+        <div class="corner" style="left:-14px;top:-14px;border-right:0;border-bottom:0;border-radius:14px 0 0 0"></div>
+        <div class="corner" style="right:-14px;top:-14px;border-left:0;border-bottom:0;border-radius:0 14px 0 0"></div>
+        <div class="corner" style="left:-14px;bottom:-14px;border-right:0;border-top:0;border-radius:0 0 0 14px"></div>
+        <div class="corner" style="right:-14px;bottom:-14px;border-left:0;border-top:0;border-radius:0 0 14px 0"></div>
+      </div>
+      <div class="lbl">${T.qrLbl}</div><div class="dots3"><i></i></div></div></div>`);
+  s.append(phone);
+  S.phone = phone;
+  S.corners = [...phone.querySelectorAll('.corner')];
+  S.laser = phone.querySelector('#laser');
+  const card = el(`<div class="card" style="left:1170px;top:150px">
+      <div class="hd">${brandIcon(34)}<span>${T.pageTitle}</span></div>
+      <div class="tabs">${T.tabs.map((x, i) => `<span class="${i ? '' : 'on'}">${x}</span>`).join('')}</div>
+      <div class="status" id="status"><span class="pill">QR 1 ✓</span><span>${T.found}</span></div>
+      <div class="rows">${ACC.map((a) => `<div class="irow"><div class="pm-av" style="--av:${avColor(a.issuer)}">${a.issuer[0]}</div>
+        <div class="m"><div class="i">${a.issuer}</div><div class="n">${a.name}</div></div><span class="tag">TOTP</span>
+        <span class="ck">${icon('check', 18)}</span></div>`).join('')}</div>
+      <div class="savebtn" id="savebtn">${T.save}</div></div>`);
+  s.append(card);
+  S.card = card;
+  S.irows = [...card.querySelectorAll('.irow')];
+  S.status = card.querySelector('#status');
+  S.save = card.querySelector('#savebtn');
+  S.particles = Array.from({ length: 7 }, () => { const p = el('<div class="particle"></div>'); s.append(p); return p; });
+})();
+
+// ---------- S4: salin & tempel ----------
+(function () {
+  const s = $('s4');
+  S.c4 = caption(s, 2, T.s4);
+  const nimbus = avColor('Nimbus Mail');
+  const win = el(`<div class="win" style="left:760px;top:150px">
+      <div class="tabstrip"><div class="lights"><i></i><i></i><i></i></div>
+        <div class="tab"><span class="fav" style="background:${nimbus}">N</span>Nimbus Mail</div></div>
+      <div class="toolbar">${icon('back', 20)}${icon('reload', 18)}<div class="addr">${icon('lock', 15)}<span>accounts.example.com/verify</span></div>
+        <span>${icon('globe', 20)}</span><span class="ext" id="ext">${brandIcon(26)}</span><span class="me"></span></div>
+      <div class="page">
+        <div class="login">
+          <div class="logo"><i style="background:${nimbus}">N</i>Nimbus Mail</div>
+          <h3>${T.loginH}</h3><p>${T.loginP}</p>
+          <div class="boxes" id="boxes">${'<span></span>'.repeat(6)}</div>
+          <div class="verify" id="verify">${T.verify}</div>
+        </div>
+      </div></div>`);
+  s.append(win);
+  S.win = win;
+  S.ext = win.querySelector('#ext');
+  S.boxes = [...win.querySelectorAll('#boxes span')];
+  S.verify = win.querySelector('#verify');
+  const pop = makePopup(ACC);
+  pop.root.insertAdjacentHTML('beforeend', `<div class="toast">${T.toast}</div>`);
+  pop.root.style.position = 'relative';
+  S.pop4 = pop;
+  S.toast4 = pop.root.querySelector('.toast');
+  const mover = el('<div class="popmove"></div>');
+  const scaler = el('<div style="transform-origin:top right;transform:scale(1.22)"></div>');
+  scaler.append(pop.root);
+  mover.append(scaler);
+  s.append(mover);
+  S.mover4 = mover;
+  S.keycap = el(`<div class="keycap"><kbd>Ctrl</kbd>+<kbd>V</kbd><span style="margin-left:6px">${T.paste}</span></div>`);
+  s.append(S.keycap);
+})();
+
+// ---------- S5: seret ----------
+(function () {
+  const s = $('s5');
+  S.c5 = caption(s, 3, T.s5);
+  const pop = makePopup(ACC);
+  S.pop5 = pop;
+  const mover = el('<div class="bigpop" style="left:1060px;top:150px"></div>');
+  const scaler = el('<div style="transform-origin:top left;transform:scale(1.62)"></div>');
+  scaler.append(pop.root);
+  mover.append(scaler);
+  s.append(mover);
+  S.mover5 = mover;
+})();
+
+// ---------- S6: aman & sinkron ----------
+(function () {
+  const s = $('s6');
+  S.c6 = caption(s, 4, T.s6);
+  const lap = (x, label, accs) => {
+    const node = el(`<div class="laptop" style="left:${x}px;top:520px"><div class="scr"><div class="disp"></div></div><div class="base"></div>
+      <div class="name">${label}</div><div class="synced">${T.synced}</div></div>`);
+    const pop = makePopup(accs);
+    const mini = el('<div class="mini"></div>');
+    mini.append(pop.root);
+    node.querySelector('.disp').append(mini);
+    s.append(node);
+    return { node, pop, mini, synced: node.querySelector('.synced') };
+  };
+  S.lapA = lap(770, T.lapA, ACC.slice(0, 3));
+  S.lapB = lap(1390, T.lapB, ACC.slice(0, 3));
+  S.cloud = el(`<div class="cloud" style="left:1155px;top:170px">
+      <svg viewBox="0 0 300 200" width="300" height="200"><path d="M78 168h150a52 52 0 0 0 6-103.6A74 74 0 0 0 92 52a58 58 0 0 0-14 116z"
+        fill="rgb(255 255 255 / 10%)" stroke="rgb(191 219 254 / 85%)" stroke-width="4" stroke-linejoin="round"/></svg>
+      <div class="lockb">${icon('lock', 40, 'style="color:#fff"')}</div>
+      <div class="cl">${T.cloud}<small>${T.cloudSmall}</small></div></div>`);
+  s.append(S.cloud);
+  S.paths = el(`<svg class="abs" style="left:0;top:0" width="1920" height="1080" viewBox="0 0 1920 1080">
+      <path id="pa" d="M990 520 Q1000 300 1175 300" fill="none" stroke="rgb(165 243 252 / 55%)" stroke-width="3" stroke-dasharray="10 12"/>
+      <path id="pb" d="M1435 300 Q1600 300 1610 520" fill="none" stroke="rgb(165 243 252 / 55%)" stroke-width="3" stroke-dasharray="10 12"/></svg>`);
+  s.insertBefore(S.paths, s.firstChild.nextSibling);
+  S.pa = S.paths.querySelector('#pa');
+  S.pb = S.paths.querySelector('#pb');
+  const hex = ['a9f3·c1e0', '5b7e·09d2', 'e4c8·3f6a'];
+  S.packets = hex.map((h) => { const p = el(`<div class="packet">${icon('lock', 16)}${h}</div>`); s.append(p); return p; });
+})();
+
+// ---------- S7: penutup ----------
+(function () {
+  const s = $('s7');
+  s.innerHTML = `<div class="center" style="top:196px">
+      <div style="position:relative;width:190px;height:190px">
+        <div class="iconglow" id="s7glow" style="width:460px;height:460px;left:-135px;top:-135px"></div>
+        <div id="s7icon" style="position:relative">${brandIcon(190, 0)}</div></div>
+      <div class="title" id="s7title" style="margin-top:44px;font-size:118px">Authenticator 2FA</div>
+      <div class="free" id="s7free" style="margin-top:30px"><span class="badge">${T.free}</span><span>${T.lic}</span></div>
+      <div id="s7url" style="margin-top:40px"><span class="urlpill">${icon('code', 40, 'style="color:#93c5fd"')}github.com/jefthah/authenticator-2fa<span class="shine" id="shine"></span></span></div>
+      <div class="chips" id="s7chips" style="margin-top:40px">${T.chips.map(([i, x]) => `<span class="chip">${icon(i, 24)}${x}</span>`).join('')}</div>
+    </div>`;
+})();
+
+// ---------- Ukur posisi target kursor ----------
+window.ready = function () {
+  const r = (node) => node.getBoundingClientRect();
+  // S4: popup di bawah ikon ekstensi, rata kanan.
+  const ext = r(S.ext);
+  M.ext = center(ext);
+  S.mover4.style.left = `${ext.right + 10 - 360}px`;
+  S.mover4.style.top = `${ext.bottom + 10}px`;
+  M.row4 = center(r(S.pop4.rows[0].li));
+  M.row4.x -= 40;
+  M.box0 = center(r(S.boxes[0]));
+  M.box5 = center(r(S.boxes[5]));
+  M.verify = center(r(S.verify));
+  // S3: kartu import di tengah tinggi layar.
+  S.card.style.top = `${Math.round(540 - S.card.offsetHeight / 2)}px`;
+  M.save = center(r(S.save));
+  M.qr = center(r(S.phone.querySelector('.qrbox')));
+  M.card = r(S.card);
+  // S5: posisi baris (satuan lokal sebelum skala) dan target pegangan.
+  M.rows5 = S.pop5.rows.map((x) => ({ top: x.li.offsetTop, h: x.li.offsetHeight }));
+  const drag = r(S.pop5.rows[3].li);
+  M.grab = { x: drag.left + 70, y: drag.top + drag.height / 2 };
+  M.scale5 = 1.62;
+  // S6
+  for (const L of [S.lapA, S.lapB]) {
+    const w = L.pop.root.offsetWidth;
+    L.mini.style.transform = 'translateX(-50%) scale(0.62)';
+    L.mini.style.width = `${w}px`;
+  }
+  S.lapB.pop.rows[2].li.style.display = 'none'; // akun ketiga datang lewat sinkron
+  render(0);
+  return true;
+};
+
+// ---------- Kursor ----------
+function cursorTrack(t) {
+  // Daftar [waktu, x, y]; bergerak halus di antara titik.
+  const tracks = [
+    { from: 8.9, to: 10.5, pts: [[8.9, 1880, 1000], [9.55, M.save.x + 40, M.save.y + 10], [10.5, M.save.x + 60, M.save.y + 60]] },
+    { from: 11.5, to: 15.9, pts: [[11.5, 1500, 860], [11.95, M.ext.x + 4, M.ext.y + 6], [12.25, M.ext.x + 4, M.ext.y + 6], [12.75, M.row4.x, M.row4.y], [13.2, M.row4.x, M.row4.y],
+      [13.6, M.box0.x + 6, M.box0.y + 10], [14.3, M.box0.x + 6, M.box0.y + 10], [14.6, M.verify.x + 30, M.verify.y + 6], [15.9, M.verify.x + 50, M.verify.y + 60]] },
+    { from: 16.55, to: 18.9, pts: [[16.55, 1820, 980], [17.0, M.grab.x, M.grab.y], [17.2, M.grab.x, M.grab.y],
+      [18.1, M.grab.x, M.grab.y - (M.rows5[3].top - M.rows5[0].top) * M.scale5], [18.9, M.grab.x + 90, M.grab.y - (M.rows5[3].top - M.rows5[0].top) * M.scale5 + 120]] },
+  ];
+  for (const tr of tracks) {
+    if (t < tr.from - 0.01 || t > tr.to) continue;
+    const pts = tr.pts;
+    let x = pts[0][1], y = pts[0][2];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [t0, x0, y0] = pts[i], [t1, x1, y1] = pts[i + 1];
+      if (t >= t0 && t <= t1) {
+        const p = eIO(P(t, t0, t1));
+        x = lerp(x0, x1, p); y = lerp(y0, y1, p);
+        break;
+      }
+      if (t > t1) { x = x1; y = y1; }
+    }
+    const alpha = Math.min(eOut(P(t, tr.from, tr.from + 0.25)), 1 - P(t, tr.to - 0.3, tr.to));
+    return { x, y, alpha };
+  }
+  return null;
+}
+const CLICKS = [9.6, 12.0, 12.85, 13.65, 14.65];
+const PRESS = [[17.05, 18.12]];
+function renderCursor(t) {
+  const c = cursorTrack(t);
+  const cur = $('cursor'), rip = $('ripple');
+  if (!c) { cur.style.opacity = 0; rip.style.opacity = 0; return; }
+  let s = 1;
+  for (const k of CLICKS) if (t >= k && t < k + 0.16) s = 1 - 0.14 * Math.sin(P(t, k, k + 0.16) * Math.PI);
+  for (const [a, b] of PRESS) if (t >= a && t <= b) s = lerp(1, 0.88, eOut(P(t, a, a + 0.1))) + lerp(0, 0.12, P(t, b - 0.08, b));
+  set(cur, { opacity: c.alpha, transform: `translate(${c.x - 6}px, ${c.y - 4}px) scale(${s})` });
+  let shown = false;
+  for (const k of [...CLICKS, PRESS[0][0]]) {
+    if (t >= k && t < k + 0.45) {
+      const p = P(t, k, k + 0.45);
+      const d = lerp(16, 86, eOut(p));
+      set(rip, { opacity: (1 - p) * 0.8 * c.alpha, width: `${d}px`, height: `${d}px`, transform: `translate(${c.x - d / 2}px, ${c.y - d / 2}px)` });
+      shown = true;
+    }
+  }
+  if (!shown) rip.style.opacity = 0;
+}
+
+// ---------- Render per adegan ----------
+function renderBg(t) {
+  set($('b1'), { transform: `translate(${980 + 140 * Math.sin(t * 0.33)}px, ${-120 + 90 * Math.cos(t * 0.27)}px)` });
+  set($('b2'), { transform: `translate(${-260 + 120 * Math.cos(t * 0.22)}px, ${520 + 70 * Math.sin(t * 0.38)}px)` });
+  set($('b3'), { transform: `translate(${560 + 160 * Math.sin(t * 0.18 + 1)}px, ${-260 + 60 * Math.sin(t * 0.3)}px)` });
+}
+
+function r1(t) {
+  const a = sceneAlpha(t, 0, 3.6, 0.01, 0.3);
+  show('s1', a);
+  if (!a) return;
+  const out = eIO(P(t, 2.45, 2.8));
+  S.hook.forEach((d, i) => {
+    const t0 = 0.12 + i * 0.52;
+    const p = eOut(P(t, t0, t0 + 0.38));
+    const next = i < 3 ? eOut(P(t, t0 + 0.52, t0 + 0.8)) : 0;
+    const dim = 1 - 0.62 * next;
+    set(d, { opacity: p * dim * (1 - out), transform: `translateY(${(1 - p) * 50 - out * 60}px)`, filter: `blur(${(1 - p) * 10 + out * 6}px)` });
+  });
+  const pf = eOut(P(t, 2.7, 3.15));
+  set(S.hookFinal, { opacity: pf, transform: `scale(${lerp(0.9, 1, pf)})`, filter: `blur(${(1 - pf) * 12}px)` });
+}
+
+function r2(t) {
+  const a = sceneAlpha(t, 3.6, 6.6, 0.15, 0.35);
+  show('s2', a);
+  if (!a) return;
+  const pi = P(t, 3.6, 4.3);
+  set($('s2icon'), { transform: `scale(${lerp(0.35, 1, spring(pi))})`, opacity: eOut(P(t, 3.6, 3.8)) });
+  const ring = $('s2icon').querySelector('.bi-ring');
+  ring.setAttribute('stroke-dashoffset', (232.5 * (1 - eOut(P(t, 3.7, 4.4)))).toFixed(1));
+  $('s2icon').querySelector('.bi-pie').setAttribute('d', piePath(64, 64, 24, 270 * eOut(P(t, 3.95, 4.7))));
+  const pp = P(t, 4.3, 5.1);
+  set($('s2pulse'), { opacity: pp > 0 && pp < 1 ? (1 - pp) * 0.8 : 0, transform: `scale(${lerp(1, 2.1, eOut(pp))})` });
+  set($('s2glow'), { opacity: 0.55 + 0.25 * eOut(P(t, 4.2, 4.8)) - 0.2 * P(t, 4.8, 6.6), transform: `scale(${lerp(0.6, 1, eOut(P(t, 3.6, 4.4)))})` });
+  rise($('s2title'), t, 4.15, 0.55, 46, 10);
+  $('s2title').style.letterSpacing = `${lerp(0.02, -0.04, eOut(P(t, 4.15, 4.9)))}em`;
+  rise($('s2tag'), t, 4.5, 0.5, 30, 6);
+}
+
+function r3(t) {
+  const a = sceneAlpha(t, 6.6, 11.4);
+  show('s3', a);
+  if (!a) return;
+  animCaption(S.c3, t, 6.65);
+  const pp = eOut(P(t, 6.7, 7.2));
+  set(S.phone, { opacity: pp, transform: `translateX(${(1 - pp) * -80}px) rotate(${(1 - pp) * -4}deg)` });
+  const pc = eOut(P(t, 6.95, 7.45));
+  set(S.card, { opacity: pc, transform: `translateX(${(1 - pc) * 90}px)` });
+  // Bingkai pindai + laser.
+  const pf = eOut(P(t, 7.25, 7.55));
+  const scanned = P(t, 8.2, 8.5);
+  S.corners.forEach((c) => set(c, { opacity: pf, transform: `scale(${lerp(1.3, 1, pf)})`, borderColor: scanned >= 1 ? '#4ade80' : '#22d3ee' }));
+  const pl = P(t, 7.45, 8.2);
+  set(S.laser, { opacity: pl > 0 && pl < 1 ? 1 : 0, top: `${lerp(4, 262, eIO(pl))}px` });
+  // Partikel dari ponsel ke kartu.
+  const from = { x: M.qr.x, y: M.qr.y }, to = { x: M.card.left + 40, y: M.card.top + 300 };
+  S.particles.forEach((p, i) => {
+    const k = P(t, 8.15 + i * 0.06, 8.6 + i * 0.06);
+    const x = lerp(from.x, to.x, eIO(k)), y = lerp(from.y, to.y, eIO(k)) - Math.sin(k * Math.PI) * 120;
+    set(p, { opacity: k > 0 && k < 1 ? Math.sin(k * Math.PI) : 0, transform: `translate(${x}px, ${y}px)` });
+  });
+  rise(S.status, t, 8.5, 0.35, 10);
+  S.irows.forEach((row, i) => {
+    const k = eOut(P(t, 8.6 + i * 0.13, 8.95 + i * 0.13));
+    set(row, { opacity: k, transform: `translateX(${(1 - k) * 40}px)` });
+  });
+  // Tombol simpan.
+  const press = t >= 9.6 && t < 9.78 ? 1 - 0.05 * Math.sin(P(t, 9.6, 9.78) * Math.PI) : 1;
+  const done = t >= 9.72;
+  S.save.style.transform = `scale(${press})`;
+  S.save.style.background = done ? '#16a34a' : '#2563eb';
+  S.save.textContent = done ? T.saved : T.save;
+}
+
+function r4(t) {
+  const a = sceneAlpha(t, 11.4, 16.2);
+  show('s4', a);
+  if (!a) return;
+  animCaption(S.c4, t, 11.45);
+  const pw = eOut(P(t, 11.5, 12.0));
+  set(S.win, { opacity: pw, transform: `translateY(${(1 - pw) * 60}px) scale(${lerp(0.97, 1, pw)})` });
+  // Ikon ekstensi menyala saat diarahkan.
+  S.ext.style.background = t > 11.85 && t < 13.7 ? '#dbe7ff' : 'transparent';
+  // Popup terbuka 12.05, tertutup 13.65.
+  const open = eOut(P(t, 12.05, 12.3)) * (1 - eIO(P(t, 13.65, 13.85)));
+  set(S.mover4, { opacity: open, transform: `translateY(${(1 - open) * -8}px) scale(${lerp(0.96, 1, open)})` });
+  const left = 22 - (t - 11.4);
+  S.pop4.rows.forEach((row) => setTimer(row, left));
+  const r0 = S.pop4.rows[0];
+  r0.li.classList.toggle('hover', t > 12.55 && t < 13.65);
+  const cp = P(t, 12.88, 14.0);
+  r0.badge.style.opacity = cp > 0 && cp < 1 ? (cp < 0.75 ? 1 : 1 - P(cp, 0.75, 1)) : 0;
+  r0.code.style.transform = `scale(${1 + 0.06 * Math.sin(P(t, 12.88, 13.1) * Math.PI)})`;
+  r0.code.style.transformOrigin = 'left center';
+  S.toast4.style.opacity = t > 12.9 && t < 13.65 ? eOut(P(t, 12.9, 13.05)) : 0;
+  // Tempel.
+  const focus = t >= 13.65 && t < 14.0;
+  S.boxes.forEach((b, i) => {
+    const filled = t >= 13.95 + i * 0.055;
+    b.textContent = filled ? ACC[0].code[i] : '';
+    b.classList.toggle('focus', focus && i === 0 || (t >= 13.95 && t < 14.4 && i === Math.min(5, Math.floor((t - 13.95) / 0.055))));
+    b.classList.toggle('ok', t >= 14.75);
+    b.style.transform = filled && t < 13.95 + i * 0.055 + 0.12 ? 'scale(1.08)' : 'scale(1)';
+  });
+  const kp = P(t, 13.75, 14.9);
+  set(S.keycap, { opacity: kp > 0 && kp < 1 ? Math.min(eOut(P(t, 13.75, 13.9)), 1 - P(t, 14.6, 14.9)) : 0,
+    transform: `translate(${M.box0.x + 36}px, ${M.box0.y + 52 - 10 * eOut(P(t, 13.75, 13.95))}px)` });
+  const vok = t >= 14.75;
+  S.verify.classList.toggle('ok', vok);
+  S.verify.textContent = vok ? T.verified : T.verify;
+  S.verify.style.transform = t >= 14.65 && t < 14.83 ? `scale(${1 - 0.04 * Math.sin(P(t, 14.65, 14.83) * Math.PI)})` : 'scale(1)';
+}
+
+function r5(t) {
+  const a = sceneAlpha(t, 16.2, 19.2);
+  show('s5', a);
+  if (!a) return;
+  animCaption(S.c5, t, 16.25);
+  const pe = eOut(P(t, 16.3, 16.8));
+  set(S.mover5, { opacity: pe, transform: `translateY(${(1 - pe) * 60}px)` });
+  const rows = S.pop5.rows, R = M.rows5;
+  rows.forEach((row) => setTimer(row, 27 - (t - 16.2)));
+  const dist = R[3].top - R[0].top;                       // satuan lokal
+  const d = dist * eIO(P(t, 17.2, 18.1));                 // seberapa jauh baris 4 naik
+  const dragged = rows[3];
+  const lifting = t >= 17.05 && t < 18.2;
+  dragged.li.classList.toggle('hover', t > 16.95 && t < 17.05);
+  dragged.li.classList.toggle('lift', lifting);
+  const lift = lifting ? eOut(P(t, 17.05, 17.18)) * (1 - eOut(P(t, 18.1, 18.2))) : 0;
+  set(dragged.li, { transform: `translateY(${-d}px) scale(${1 + 0.025 * lift})` });
+  for (let k = 0; k < 3; k++) {
+    const cross = (R[3].top + R[3].h / 2) - (R[k].top + R[k].h / 2) - R[3].h * 0.5;
+    const pk = eIO(clamp((d - cross) / (R[3].h * 0.55)));
+    rows[k].li.style.transform = `translateY(${pk * R[3].h}px)`;
+  }
+  // Garis pemisah setelah urutan berubah.
+  const after = t >= 18.12;
+  dragged.li.style.borderTopColor = after || lifting ? 'transparent' : '';
+  rows[0].li.style.borderTopColor = after ? 'var(--line)' : '';
+}
+
+function pointOn(path, p) {
+  const len = path.getTotalLength();
+  return path.getPointAtLength(len * p);
+}
+function r6(t) {
+  const a = sceneAlpha(t, 19.2, 22.8);
+  show('s6', a);
+  if (!a) return;
+  animCaption(S.c6, t, 19.25);
+  const la = eOut(P(t, 19.3, 19.8)), lb = eOut(P(t, 19.45, 19.95)), cl = eOut(P(t, 19.55, 20.05));
+  set(S.lapA.node, { opacity: la, transform: `translateY(${(1 - la) * 50}px)` });
+  set(S.lapB.node, { opacity: lb, transform: `translateY(${(1 - lb) * 50}px)` });
+  set(S.cloud, { opacity: cl, transform: `translateY(${(1 - cl) * -30}px) scale(${lerp(0.9, 1, cl)})` });
+  const left = 16 - (t - 19.2);
+  [...S.lapA.pop.rows, ...S.lapB.pop.rows].forEach((row) => setTimer(row, left));
+  // Garis putus-putus bergerak.
+  const dp = eOut(P(t, 19.7, 20.1));
+  for (const p of [S.pa, S.pb]) { p.style.opacity = dp; p.style.strokeDashoffset = `${-t * 40}`; }
+  // Paket: A → awan (20.0–20.7), awan → B (20.85–21.55).
+  S.packets.forEach((pk, i) => {
+    const k1 = P(t, 20.0 + i * 0.13, 20.6 + i * 0.13);
+    const k2 = P(t, 20.85 + i * 0.13, 21.45 + i * 0.13);
+    let pt = null, o = 0;
+    if (k1 > 0 && k1 < 1) { pt = pointOn(S.pa, eIO(k1)); o = Math.min(1, k1 * 5, (1 - k1) * 5); }
+    else if (k2 > 0 && k2 < 1) { pt = pointOn(S.pb, eIO(k2)); o = Math.min(1, k2 * 5, (1 - k2) * 5); }
+    if (pt) set(pk, { opacity: o, transform: `translate(${pt.x - 70}px, ${pt.y - 18}px)` });
+    else pk.style.opacity = 0;
+  });
+  const lockb = S.cloud.querySelector('.lockb');
+  const lp = P(t, 20.65, 21.0);
+  lockb.style.transform = `scale(${1 + 0.14 * Math.sin(lp * Math.PI)})`;
+  // Akun Orbit Pay muncul di laptop B.
+  const arrive = eOut(P(t, 21.55, 21.9));
+  const orbit = S.lapB.pop.rows[2].li;
+  orbit.style.display = t >= 21.55 ? '' : 'none';
+  set(orbit, { opacity: arrive, transform: `translateX(${(1 - arrive) * 30}px)`, background: arrive > 0 && t < 22.4 ? 'rgb(220 252 231)' : '' });
+  rise(S.lapB.synced, t, 21.7, 0.35, 12);
+}
+
+function r7(t) {
+  const a = sceneAlpha(t, 22.8, 26, 0.3, 0);
+  show('s7', a);
+  if (!a) return;
+  const pi = P(t, 22.85, 23.45);
+  set($('s7icon'), { transform: `scale(${lerp(0.4, 1, spring(pi))})`, opacity: eOut(P(t, 22.85, 23.05)) });
+  $('s7icon').querySelector('.bi-ring').setAttribute('stroke-dashoffset', (232.5 * (1 - eOut(P(t, 22.9, 23.5)))).toFixed(1));
+  $('s7icon').querySelector('.bi-pie').setAttribute('d', piePath(64, 64, 24, 270 * eOut(P(t, 23.05, 23.7))));
+  set($('s7glow'), { opacity: 0.6 + 0.1 * Math.sin(t * 2.4), transform: `scale(${lerp(0.6, 1, eOut(P(t, 22.85, 23.5)))})` });
+  rise($('s7title'), t, 23.05, 0.5, 40, 8);
+  rise($('s7free'), t, 23.3, 0.45, 26);
+  rise($('s7url'), t, 23.5, 0.45, 26);
+  rise($('s7chips'), t, 23.75, 0.45, 20);
+  const sh = P(t, 24.3, 25.1);
+  set($('shine'), { left: `${lerp(-200, 1100, eIO(sh))}px`, opacity: sh > 0 && sh < 1 ? 1 : 0 });
+}
+
+window.render = function (t) {
+  renderBg(t);
+  r1(t); r2(t); r3(t); r4(t); r5(t); r6(t); r7(t);
+  renderCursor(t);
+};
+</script>
+</body>
+</html>
