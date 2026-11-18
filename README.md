@@ -2,7 +2,7 @@
 
 <p align="center"><img src="promo/social-preview-en.png" width="860" alt="Authenticator 2FA: your 2FA codes, one click away. Import from Google Authenticator, AES-256 encrypted, syncs between laptops."></p>
 
-<p align="center">▶ 26-second intro video: <a href="promo/ad-en.mp4">English</a> · <a href="promo/ad-id.mp4">Bahasa Indonesia</a></p>
+<p align="center">▶ 26-second intro video (MP4, 7 MB download): <a href="promo/ad-en.mp4?raw=true">English</a> · <a href="promo/ad-id.mp4?raw=true">Bahasa Indonesia</a></p>
 
 Two-factor codes (TOTP/HOTP) right in the Chrome toolbar. Move **all** your accounts
 out of **Google Authenticator** in one go by scanning its "Transfer accounts" QR codes.
